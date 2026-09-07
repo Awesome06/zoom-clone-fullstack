@@ -7,17 +7,23 @@ import { useState, useEffect } from "react";
 interface ParticipantsSidebarProps {
   participants: Participant[];
   isHost: boolean;
+  localParticipantId: number | null;
   onToggleMute: (id: number, currentMuted: boolean) => void;
+  onToggleVideo: (id: number, currentVideoOn: boolean) => void;
   onRemove: (id: number) => void;
   onMuteAll: () => void;
+  onAdmit?: (name: string) => void;
 }
 
 export default function ParticipantsSidebar({ 
   participants, 
   isHost,
+  localParticipantId,
   onToggleMute,
+  onToggleVideo,
   onRemove,
-  onMuteAll
+  onMuteAll,
+  onAdmit
 }: ParticipantsSidebarProps) {
   const [waitingUsers, setWaitingUsers] = useState<{id: string, name: string}[]>([]);
 
@@ -40,7 +46,12 @@ export default function ParticipantsSidebar({
           <div className="p-4 flex items-center justify-between">
             <h3 className="font-semibold text-gray-800 text-sm">Waiting Room</h3>
             <button 
-              onClick={() => setWaitingUsers([])}
+              onClick={() => {
+                if (onAdmit) {
+                  waitingUsers.forEach(u => onAdmit(u.name));
+                }
+                setWaitingUsers([]);
+              }}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#0B5CFF] hover:bg-blue-700 text-white text-xs font-medium rounded-full transition-colors"
             >
               Allow Participants in
@@ -59,7 +70,10 @@ export default function ParticipantsSidebar({
                   <span className="text-sm font-medium text-gray-800">{u.name}</span>
                 </div>
                 <button 
-                  onClick={() => setWaitingUsers(waitingUsers.filter(w => w.id !== u.id))}
+                  onClick={() => {
+                    if (onAdmit) onAdmit(u.name);
+                    setWaitingUsers(waitingUsers.filter(w => w.id !== u.id));
+                  }}
                   className="px-3 py-1.5 border border-[#0B5CFF] text-[#0B5CFF] text-xs font-medium rounded-md hover:bg-blue-50 transition-colors"
                 >
                   Admit
@@ -85,12 +99,22 @@ export default function ParticipantsSidebar({
             </div>
             
             <div className="flex items-center gap-3 text-gray-500">
-              <button onClick={() => isHost && onToggleMute(p.id, p.is_muted)} disabled={!isHost} className={isHost ? "hover:text-gray-900" : ""}>
+              <button 
+                onClick={() => (isHost || p.id === localParticipantId) && onToggleMute(p.id, p.is_muted)} 
+                disabled={!isHost && p.id !== localParticipantId} 
+                className={(isHost || p.id === localParticipantId) ? "hover:text-gray-900" : ""}
+              >
                 {p.is_muted ? <MicOff className="w-4 h-4 text-red-500" /> : <Mic className="w-4 h-4" />}
               </button>
-              {p.is_video_on ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4 text-red-500" />}
+              <button 
+                onClick={() => (isHost || p.id === localParticipantId) && onToggleVideo(p.id, p.is_video_on)} 
+                disabled={!isHost && p.id !== localParticipantId} 
+                className={(isHost || p.id === localParticipantId) ? "hover:text-gray-900" : ""}
+              >
+                {p.is_video_on ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4 text-red-500" />}
+              </button>
               
-              {isHost && (
+              {isHost && p.id !== localParticipantId && (
                 <button onClick={() => onRemove(p.id)} className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-red-500 hover:text-red-700">
                   <ShieldAlert className="w-4 h-4" />
                 </button>

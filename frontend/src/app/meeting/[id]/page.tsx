@@ -59,9 +59,14 @@ export default function MeetingPage() {
       try {
         const recentJson = localStorage.getItem("recent_joined_meetings");
         let recent = recentJson ? JSON.parse(recentJson) : [];
-        recent = recent.filter((m: any) => m.id !== id);
         recent.unshift({ id, title: joinRes.meeting.title });
-        if (recent.length > 3) recent = recent.slice(0, 3);
+        
+        // Ensure absolute uniqueness
+        const uniqueRecent = Array.from(new Map(recent.map((m: any) => [m.id, m])).values());
+        
+        if (uniqueRecent.length > 3) recent = uniqueRecent.slice(0, 3);
+        else recent = uniqueRecent;
+
         localStorage.setItem("recent_joined_meetings", JSON.stringify(recent));
       } catch (e) {}
 

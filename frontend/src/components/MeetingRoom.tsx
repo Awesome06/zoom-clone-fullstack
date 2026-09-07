@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Meeting, Participant, User } from "@/lib/types";
-import { toggleParticipantMute, removeParticipant, endMeeting } from "@/lib/api";
+import { toggleParticipantMute, toggleParticipantVideo, removeParticipant, endMeeting, joinMeeting } from "@/lib/api";
 import ParticipantTile from "./ParticipantTile";
 import MeetingToolbar from "./MeetingToolbar";
 import ParticipantsSidebar from "./ParticipantsSidebar";
@@ -54,10 +54,24 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
   const handleToggleMute = async (id: number, currentMuted: boolean) => {
     try {
       await toggleParticipantMute(id, !currentMuted);
+      if (id === localParticipantId) setLocalMuted(!currentMuted);
       onRefreshParticipants();
-    } catch (err) {
-      // Handle silently for demo
-    }
+    } catch (err) {}
+  };
+
+  const handleToggleVideo = async (id: number, currentVideoOn: boolean) => {
+    try {
+      await toggleParticipantVideo(id, !currentVideoOn);
+      if (id === localParticipantId) setLocalVideo(!currentVideoOn);
+      onRefreshParticipants();
+    } catch (err) {}
+  };
+
+  const handleAdmit = async (name: string) => {
+    try {
+      await joinMeeting(meeting.meeting_id, name);
+      onRefreshParticipants();
+    } catch (e) {}
   };
 
   const handleRemove = async (id: number) => {
@@ -74,8 +88,11 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
   const handleMuteAll = async () => {
     try {
       for (const p of participants) {
-        if (p.display_name !== currentUser?.name && !p.is_muted) {
+        if (!p.is_muted) {
           await toggleParticipantMute(p.id, true);
+          if (p.id === localParticipantId) {
+            setLocalMuted(true);
+          }
         }
       }
       onRefreshParticipants();
@@ -148,8 +165,12 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
                 <ParticipantTile 
                   key={p.id} 
                   participant={p} 
-                  isHost={meeting.host_id === currentUser?.id && p.id === localParticipantId} 
+                  isHost={meeting.host_id === currentUser?.id} 
                   stream={p.id === localParticipantId ? localStream : null}
+                  isLocalUser={p.id === localParticipantId}
+                  onToggleMute={handleToggleMute}
+                  onToggleVideo={handleToggleVideo}
+                  onRemove={handleRemove}
                 />
               ))}
             </div>
@@ -159,8 +180,26 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
         <MeetingToolbar 
           isMuted={localMuted}
           isVideoOn={localVideo}
-          onToggleMute={() => setLocalMuted(!localMuted)}
-          onToggleVideo={() => setLocalVideo(!localVideo)}
+          onToggleMute={async () => {
+            const newMuted = !localMuted;
+            setLocalMuted(newMuted);
+            if (localParticipantId) {
+              try {
+                await toggleParticipantMute(localParticipantId, newMuted);
+                onRefreshParticipants();
+              } catch (e) {}
+            }
+          }}
+          onToggleVideo={async () => {
+            const newVideo = !localVideo;
+            setLocalVideo(newVideo);
+            if (localParticipantId) {
+              try {
+                await toggleParticipantVideo(localParticipantId, newVideo);
+                onRefreshParticipants();
+              } catch (e) {}
+            }
+          }}
           onToggleSidebar={(panel) => setSidebar((prev) => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))}
           onShareScreen={(stream) => setScreenStream(stream)}
           onLeave={handleLeave}
@@ -176,9 +215,12 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
           <ParticipantsSidebar 
             participants={participants}
             isHost={isHost}
+            localParticipantId={localParticipantId}
             onToggleMute={handleToggleMute}
+            onToggleVideo={handleToggleVideo}
             onRemove={handleRemove}
             onMuteAll={handleMuteAll}
+            onAdmit={handleAdmit}
           />
         }
         chatComponent={
