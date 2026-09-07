@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { Meeting } from "@/lib/types";
+import VideoPlayer from "./VideoPlayer";
 
 interface PreJoinScreenProps {
   meeting: Meeting | null;
@@ -18,15 +19,10 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
-    let activeStream: MediaStream | null = null;
     if (isVideoOn) {
       navigator.mediaDevices.getUserMedia({ video: true, audio: false })
         .then((mediaStream) => {
-          activeStream = mediaStream;
           setStream(mediaStream);
-          if (videoRef.current) {
-            videoRef.current.srcObject = mediaStream;
-          }
         })
         .catch((err) => {
           console.error("Failed to get local video:", err);
@@ -38,13 +34,12 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
         setStream(null);
       }
     }
-
     return () => {
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [isVideoOn, stream]);
+  }, [isVideoOn]);
 
   const handleJoinClick = () => {
     if (name.trim()) {
@@ -66,11 +61,10 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
         {/* Video Preview */}
         <div className="flex-1 w-full relative bg-black rounded-2xl overflow-hidden aspect-video shadow-2xl border border-gray-700 flex items-center justify-center">
           {isVideoOn ? (
-             <video 
-              ref={videoRef}
+             <VideoPlayer 
+              stream={stream}
               autoPlay 
               muted 
-              playsInline
               className="w-full h-full object-cover transform scale-x-[-1]"
             />
           ) : (
@@ -120,7 +114,7 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
           <button
             onClick={handleJoinClick}
             disabled={!name.trim()}
-            className="w-full bg-zoom-blue hover:bg-zoom-blue-dark text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-zoom-blue/20"
+            className="w-full bg-[#0B5CFF] hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-zoom-blue/20"
           >
             Join
           </button>

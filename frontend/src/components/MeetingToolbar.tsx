@@ -9,6 +9,7 @@ interface MeetingToolbarProps {
   onToggleMute: () => void;
   onToggleVideo: () => void;
   onToggleSidebar: (panel: 'participants' | 'chat') => void;
+  onShareScreen: (stream: MediaStream | null) => void;
   onLeave: () => void;
   isHost: boolean;
 }
@@ -19,6 +20,7 @@ export default function MeetingToolbar({
   onToggleMute, 
   onToggleVideo, 
   onToggleSidebar, 
+  onShareScreen,
   onLeave,
   isHost
 }: MeetingToolbarProps) {
@@ -49,12 +51,15 @@ export default function MeetingToolbar({
       if (!isSharing) {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         setIsSharing(true);
+        onShareScreen(stream);
         // In a real app, you would add this stream to the WebRTC connection
         stream.getVideoTracks()[0].onended = () => {
           setIsSharing(false);
+          onShareScreen(null);
         };
       } else {
         setIsSharing(false);
+        onShareScreen(null);
         // Mock ending the share
       }
     } catch (err) {

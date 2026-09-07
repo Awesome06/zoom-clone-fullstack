@@ -8,6 +8,7 @@ import MeetingToolbar from "./MeetingToolbar";
 import ParticipantsSidebar from "./ParticipantsSidebar";
 import ChatSidebar from "./ChatSidebar";
 import RightSidebarContainer from "./RightSidebarContainer";
+import VideoPlayer from "./VideoPlayer";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 
@@ -25,6 +26,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
   const [sidebar, setSidebar] = useState({ participants: false, chat: false });
   const [localMuted, setLocalMuted] = useState(initialMuted);
   const [localVideo, setLocalVideo] = useState(initialVideoOn);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
 
   const isHost = currentUser?.id === meeting.host_id;
 
@@ -90,11 +92,26 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
         </div>
 
         <div className="flex-1 p-2 md:p-4 flex items-center justify-center overflow-hidden">
-          <div className={`w-full h-full max-w-7xl max-h-full grid gap-2 ${getGridClass(participants.length)}`}>
-            {participants.map((p) => (
-              <ParticipantTile key={p.id} participant={p} isHost={meeting.host_id === currentUser?.id} />
-            ))}
-          </div>
+          {screenStream ? (
+            <div className="w-full h-full flex flex-col gap-2">
+              <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center border border-gray-800">
+                <VideoPlayer stream={screenStream} className="max-w-full max-h-full object-contain" />
+              </div>
+              <div className="h-32 flex gap-2 overflow-x-auto p-1 bg-gray-900 rounded-lg shrink-0">
+                {participants.map((p) => (
+                  <div key={p.id} className="w-48 h-full shrink-0">
+                    <ParticipantTile participant={p} isHost={meeting.host_id === currentUser?.id} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={`w-full h-full max-w-7xl max-h-full grid gap-2 ${getGridClass(participants.length)}`}>
+              {participants.map((p) => (
+                <ParticipantTile key={p.id} participant={p} isHost={meeting.host_id === currentUser?.id} />
+              ))}
+            </div>
+          )}
         </div>
 
         <MeetingToolbar 
@@ -103,6 +120,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
           onToggleMute={() => setLocalMuted(!localMuted)}
           onToggleVideo={() => setLocalVideo(!localVideo)}
           onToggleSidebar={(panel) => setSidebar((prev) => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))}
+          onShareScreen={(stream) => setScreenStream(stream)}
           onLeave={handleLeave}
           isHost={isHost}
         />

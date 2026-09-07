@@ -36,8 +36,8 @@ export default function ChatSidebar({ currentUser }: ChatSidebarProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      <div className="p-4 border-b border-gray-200">
+    <div className="flex flex-col h-full bg-[#F5F5F5]">
+      <div className="p-4 border-b border-gray-200 bg-white">
         <h2 className="text-sm font-semibold text-gray-800">Meeting Chat</h2>
       </div>
 
@@ -53,7 +53,7 @@ export default function ChatSidebar({ currentUser }: ChatSidebarProps) {
                 <span className="text-xs font-semibold text-gray-800">{msg.senderName}</span>
                 <span className="text-[10px] text-gray-500">{msg.time}</span>
               </div>
-              <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded-lg inline-block self-start max-w-[90%]">
+              <div className="text-sm text-gray-700 bg-white p-2 rounded-lg inline-block self-start max-w-[90%] shadow-sm border border-gray-200">
                 {msg.text}
               </div>
             </div>
@@ -61,7 +61,7 @@ export default function ChatSidebar({ currentUser }: ChatSidebarProps) {
         )}
       </div>
 
-      <div className="p-3 border-t border-gray-200 flex items-center gap-2">
+      <div className="p-3 border-t border-gray-200 flex items-center gap-2 bg-white">
         <input
           type="text"
           value={inputText}
