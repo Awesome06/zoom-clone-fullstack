@@ -16,35 +16,35 @@ export default function MeetingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadRoom = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-
-      let currentMeeting = await getMeetingDetails(id);
-      const displayName = sessionStorage.getItem("join_display_name") || currentUser.name;
-      
-      const joinRes = await joinMeeting(id, displayName);
-      currentMeeting = joinRes.meeting;
-      
-      setMeeting(currentMeeting);
-      sessionStorage.removeItem("join_display_name");
-
-      const parts = await getParticipants(id);
-      setParticipants(parts);
-      
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to load meeting room");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadRoom = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+
+        let currentMeeting = await getMeetingDetails(id);
+        const displayName = sessionStorage.getItem("join_display_name") || currentUser.name;
+        
+        const joinRes = await joinMeeting(id, displayName);
+        currentMeeting = joinRes.meeting;
+        
+        setMeeting(currentMeeting);
+        sessionStorage.removeItem("join_display_name");
+
+        const parts = await getParticipants(id);
+        setParticipants(parts);
+        
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load meeting room");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadRoom();
   }, [id]);
 

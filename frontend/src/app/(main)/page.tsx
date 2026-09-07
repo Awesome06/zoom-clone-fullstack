@@ -80,7 +80,7 @@ export default function HomeView() {
       <div className="w-full max-w-3xl mb-8 bg-[#F0F6FF] border border-[#BCE1FC] rounded-xl p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-zoom-blue shrink-0 mt-0.5" />
         <p className="text-[13px] text-gray-700 leading-snug">
-          You haven't connected your calendar yet. <button className="text-zoom-blue hover:underline">Connect now</button> to manage all your meetings and events in one place.
+          You haven&apos;t connected your calendar yet. <button className="text-zoom-blue hover:underline">Connect now</button> to manage all your meetings and events in one place.
         </p>
       </div>
 
