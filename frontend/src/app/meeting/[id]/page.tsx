@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Meeting, Participant, User } from "@/lib/types";
 import { getMeetingDetails, getParticipants, joinMeeting, getCurrentUser } from "@/lib/api";
 import MeetingRoom from "@/components/MeetingRoom";
-import PreJoinScreen from "@/components/PreJoinScreen";
 
 export default function MeetingPage() {
   const { id } = useParams() as { id: string };
@@ -20,8 +19,12 @@ export default function MeetingPage() {
   const [initialMuted, setInitialMuted] = useState(false);
   const [initialVideoOn, setInitialVideoOn] = useState(true);
   const [localParticipantId, setLocalParticipantId] = useState<number | null>(null);
+  const joinAttempted = useRef(false);
 
   useEffect(() => {
+    if (joinAttempted.current) return;
+    joinAttempted.current = true;
+
     const initRoom = async () => {
       try {
         const currentUser = await getCurrentUser();
@@ -29,15 +32,16 @@ export default function MeetingPage() {
 
         const currentMeeting = await getMeetingDetails(id);
         setMeeting(currentMeeting);
+
+        // Auto-join immediately
+        handleJoin(currentUser?.name || "Guest", false, true);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
           setError("Failed to load meeting details");
         }
-      } finally {
-        setLoading(false);
-      }
+      } 
     };
 
     initRoom();
@@ -101,15 +105,7 @@ export default function MeetingPage() {
     );
   }
 
-  if (!hasJoined) {
-    return (
-      <PreJoinScreen 
-        meeting={meeting} 
-        defaultName={user?.name || ""} 
-        onJoin={handleJoin} 
-      />
-    );
-  }
+
 
   return (
     <div className="flex-1 w-full h-full relative">

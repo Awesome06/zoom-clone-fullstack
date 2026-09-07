@@ -11,6 +11,7 @@ interface MeetingToolbarProps {
   onToggleSidebar: (panel: 'participants' | 'chat') => void;
   onShareScreen: (stream: MediaStream | null) => void;
   onLeave: () => void;
+  onEndForAll?: () => void;
   isHost: boolean;
 }
 
@@ -22,6 +23,7 @@ export default function MeetingToolbar({
   onToggleSidebar, 
   onShareScreen,
   onLeave,
+  onEndForAll,
   isHost
 }: MeetingToolbarProps) {
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
@@ -30,7 +32,19 @@ export default function MeetingToolbar({
   const [showMicMenu, setShowMicMenu] = useState(false);
   const [showVideoMenu, setShowVideoMenu] = useState(false);
   const [showSecurityMenu, setShowSecurityMenu] = useState(false);
+  const [showEndMenu, setShowEndMenu] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const endMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (endMenuRef.current && !endMenuRef.current.contains(event.target as Node)) {
+        setShowEndMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const getDevices = async () => {
@@ -202,14 +216,32 @@ export default function MeetingToolbar({
         </button>
       </div>
 
-      <div>
+      <div className="relative" ref={endMenuRef}>
         <button 
-          onClick={onLeave}
+          onClick={() => isHost ? setShowEndMenu(!showEndMenu) : onLeave()}
           className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
         >
           <PhoneOff className="w-4 h-4" />
-          <span className="hidden sm:inline">{isHost ? "End Meeting" : "Leave"}</span>
+          <span className="hidden sm:inline">End</span>
+          {isHost && <ChevronUp className="w-4 h-4" />}
         </button>
+
+        {isHost && showEndMenu && (
+          <div className="absolute bottom-14 right-0 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-2 text-sm text-gray-200 z-50">
+            <button 
+              onClick={onEndForAll} 
+              className="w-full text-left px-4 py-3 text-red-500 hover:bg-gray-700 font-semibold border-b border-gray-700/50"
+            >
+              End Meeting for All
+            </button>
+            <button 
+              onClick={onLeave} 
+              className="w-full text-left px-4 py-3 hover:bg-gray-700 font-medium"
+            >
+              Leave Meeting
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

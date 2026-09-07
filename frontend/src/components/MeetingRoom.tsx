@@ -85,18 +85,31 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
   };
 
   const handleLeave = async () => {
-    if (isHost && confirm("End meeting for all?")) {
-      await endMeeting(meeting.meeting_id);
+    if (localParticipantId) {
+      try {
+        await removeParticipant(localParticipantId);
+      } catch (err) {}
     }
-    
+
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
     }
     if (screenStream) {
       screenStream.getTracks().forEach(track => track.stop());
     }
-    
     router.push("/");
+  };
+
+  const handleEndForAll = async () => {
+    if (isHost) {
+      try {
+        for (const p of participants) {
+          await removeParticipant(p.id);
+        }
+        await endMeeting(meeting.meeting_id);
+      } catch (e) {}
+    }
+    await handleLeave();
   };
 
   return (
@@ -151,6 +164,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
           onToggleSidebar={(panel) => setSidebar((prev) => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))}
           onShareScreen={(stream) => setScreenStream(stream)}
           onLeave={handleLeave}
+          onEndForAll={handleEndForAll}
           isHost={isHost}
         />
       </div>
