@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Meeting, Participant, User } from "@/lib/types";
 import { toggleParticipantMute, removeParticipant, endMeeting } from "@/lib/api";
 import ParticipantTile from "./ParticipantTile";
@@ -17,17 +17,26 @@ interface MeetingRoomProps {
   meeting: Meeting;
   participants: Participant[];
   currentUser: User | null;
+  localParticipantId: number | null;
   initialMuted: boolean;
   initialVideoOn: boolean;
   onRefreshParticipants: () => void;
 }
 
-export default function MeetingRoom({ meeting, participants, currentUser, initialMuted, initialVideoOn, onRefreshParticipants }: MeetingRoomProps) {
+export default function MeetingRoom({ meeting, participants, currentUser, localParticipantId, initialMuted, initialVideoOn, onRefreshParticipants }: MeetingRoomProps) {
   const router = useRouter();
   const [sidebar, setSidebar] = useState({ participants: false, chat: false });
   const [localMuted, setLocalMuted] = useState(initialMuted);
   const [localVideo, setLocalVideo] = useState(initialVideoOn);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [screenStream]);
 
   const localStream = useLocalMediaStream(localVideo, localMuted);
 
@@ -79,6 +88,14 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
     if (isHost && confirm("End meeting for all?")) {
       await endMeeting(meeting.meeting_id);
     }
+    
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+    if (screenStream) {
+      screenStream.getTracks().forEach(track => track.stop());
+    }
+    
     router.push("/");
   };
 
@@ -105,8 +122,8 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
                   <div key={p.id} className="w-48 h-full shrink-0">
                     <ParticipantTile 
                       participant={p} 
-                      isHost={meeting.host_id === currentUser?.id} 
-                      stream={p.id === currentUser?.id ? localStream : null}
+                      isHost={meeting.host_id === currentUser?.id && p.id === localParticipantId} 
+                      stream={p.id === localParticipantId ? localStream : null}
                     />
                   </div>
                 ))}
@@ -118,8 +135,8 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
                 <ParticipantTile 
                   key={p.id} 
                   participant={p} 
-                  isHost={meeting.host_id === currentUser?.id} 
-                  stream={p.id === currentUser?.id ? localStream : null}
+                  isHost={meeting.host_id === currentUser?.id && p.id === localParticipantId} 
+                  stream={p.id === localParticipantId ? localStream : null}
                 />
               ))}
             </div>

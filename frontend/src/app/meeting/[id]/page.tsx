@@ -19,6 +19,7 @@ export default function MeetingPage() {
   const [hasJoined, setHasJoined] = useState(false);
   const [initialMuted, setInitialMuted] = useState(false);
   const [initialVideoOn, setInitialVideoOn] = useState(true);
+  const [localParticipantId, setLocalParticipantId] = useState<number | null>(null);
 
   useEffect(() => {
     const initRoom = async () => {
@@ -49,6 +50,7 @@ export default function MeetingPage() {
     try {
       const joinRes = await joinMeeting(id, name);
       setMeeting(joinRes.meeting);
+      setLocalParticipantId(joinRes.participant_id);
       
       const parts = await getParticipants(id);
       setParticipants(parts);
@@ -106,6 +108,7 @@ export default function MeetingPage() {
         meeting={meeting}
         participants={participants}
         currentUser={user}
+        localParticipantId={localParticipantId}
         initialMuted={initialMuted}
         initialVideoOn={initialVideoOn}
         onRefreshParticipants={async () => {

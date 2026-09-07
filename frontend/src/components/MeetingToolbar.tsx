@@ -49,7 +49,10 @@ export default function MeetingToolbar({
   const handleShareScreen = async () => {
     try {
       if (!isSharing) {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const stream = await navigator.mediaDevices.getDisplayMedia({ 
+          video: true,
+          selfBrowserSurface: "exclude" 
+        } as any);
         setIsSharing(true);
         onShareScreen(stream);
         // In a real app, you would add this stream to the WebRTC connection
