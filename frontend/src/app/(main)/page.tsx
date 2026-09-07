@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Video, Plus, Calendar, Info, RefreshCw } from "lucide-react";
 import { createInstantMeeting } from "@/lib/api";
-import JoinModal from "@/components/JoinModal";
 import ScheduleModal from "@/components/ScheduleModal";
 
 export default function HomeView() {
@@ -12,7 +11,6 @@ export default function HomeView() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   
-  const [isJoinOpen, setJoinOpen] = useState(false);
   const [isScheduleOpen, setScheduleOpen] = useState(false);
 
   useEffect(() => {
@@ -35,10 +33,7 @@ export default function HomeView() {
     }
   };
 
-  const handleJoinSubmit = (meetingId: string, displayName: string) => {
-    sessionStorage.setItem("join_display_name", displayName);
-    router.push(`/meeting/${meetingId}`);
-  };
+
 
   return (
     <div className="max-w-4xl w-full mx-auto px-6 py-10 flex flex-col items-center">
@@ -61,7 +56,7 @@ export default function HomeView() {
           <span className="text-[13px] font-medium text-gray-700">New meeting</span>
         </div>
 
-        <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => setJoinOpen(true)}>
+        <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => router.push('/join')}>
           <div className="w-[72px] h-[72px] bg-zoom-blue hover:bg-zoom-blue-dark text-white rounded-[20px] shadow-sm flex items-center justify-center transition-all">
             <Plus className="w-8 h-8" />
           </div>
@@ -114,11 +109,7 @@ export default function HomeView() {
         </div>
       </div>
 
-      <JoinModal 
-        isOpen={isJoinOpen}
-        onClose={() => setJoinOpen(false)}
-        onJoin={handleJoinSubmit}
-      />
+
 
       <ScheduleModal 
         isOpen={isScheduleOpen}

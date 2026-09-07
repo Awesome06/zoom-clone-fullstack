@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Meeting, Participant, User } from "@/lib/types";
-import { toggleParticipantMute, removeParticipant, endMeeting } from "@/lib/api";
+import { toggleParticipantMute, toggleParticipantVideo, removeParticipant, endMeeting, joinMeeting } from "@/lib/api";
 import ParticipantTile from "./ParticipantTile";
 import MeetingToolbar from "./MeetingToolbar";
 import ParticipantsSidebar from "./ParticipantsSidebar";
+import ChatSidebar from "./ChatSidebar";
+import RightSidebarContainer from "./RightSidebarContainer";
+import VideoPlayer from "./VideoPlayer";
+import { useLocalMediaStream } from "@/hooks/useLocalMediaStream";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 
@@ -13,14 +17,28 @@ interface MeetingRoomProps {
   meeting: Meeting;
   participants: Participant[];
   currentUser: User | null;
+  localParticipantId: number | null;
+  initialMuted: boolean;
+  initialVideoOn: boolean;
   onRefreshParticipants: () => void;
 }
 
-export default function MeetingRoom({ meeting, participants, currentUser, onRefreshParticipants }: MeetingRoomProps) {
+export default function MeetingRoom({ meeting, participants, currentUser, localParticipantId, initialMuted, initialVideoOn, onRefreshParticipants }: MeetingRoomProps) {
   const router = useRouter();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [localMuted, setLocalMuted] = useState(false);
-  const [localVideo, setLocalVideo] = useState(true);
+  const [sidebar, setSidebar] = useState({ participants: false, chat: false });
+  const [localMuted, setLocalMuted] = useState(initialMuted);
+  const [localVideo, setLocalVideo] = useState(initialVideoOn);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [screenStream]);
+
+  const localStream = useLocalMediaStream(localVideo, localMuted);
 
   const isHost = currentUser?.id === meeting.host_id;
 
@@ -36,10 +54,24 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
   const handleToggleMute = async (id: number, currentMuted: boolean) => {
     try {
       await toggleParticipantMute(id, !currentMuted);
+      if (id === localParticipantId) setLocalMuted(!currentMuted);
       onRefreshParticipants();
-    } catch (err) {
-      // Handle silently for demo
-    }
+    } catch (err) {}
+  };
+
+  const handleToggleVideo = async (id: number, currentVideoOn: boolean) => {
+    try {
+      await toggleParticipantVideo(id, !currentVideoOn);
+      if (id === localParticipantId) setLocalVideo(!currentVideoOn);
+      onRefreshParticipants();
+    } catch (err) {}
+  };
+
+  const handleAdmit = async (name: string) => {
+    try {
+      await joinMeeting(meeting.meeting_id, name);
+      onRefreshParticipants();
+    } catch (e) {}
   };
 
   const handleRemove = async (id: number) => {
@@ -56,8 +88,11 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
   const handleMuteAll = async () => {
     try {
       for (const p of participants) {
-        if (p.display_name !== currentUser?.name && !p.is_muted) {
+        if (!p.is_muted) {
           await toggleParticipantMute(p.id, true);
+          if (p.id === localParticipantId) {
+            setLocalMuted(true);
+          }
         }
       }
       onRefreshParticipants();
@@ -67,14 +102,35 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
   };
 
   const handleLeave = async () => {
-    if (isHost && confirm("End meeting for all?")) {
-      await endMeeting(meeting.meeting_id);
+    if (localParticipantId) {
+      try {
+        await removeParticipant(localParticipantId);
+      } catch (err) {}
+    }
+
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+    if (screenStream) {
+      screenStream.getTracks().forEach(track => track.stop());
     }
     router.push("/");
   };
 
+  const handleEndForAll = async () => {
+    if (isHost) {
+      try {
+        for (const p of participants) {
+          await removeParticipant(p.id);
+        }
+        await endMeeting(meeting.meeting_id);
+      } catch (e) {}
+    }
+    await handleLeave();
+  };
+
   return (
-    <div className="flex h-screen bg-black overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-black overflow-hidden font-sans">
       <div className="flex-1 flex flex-col relative w-full h-full">
         <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-10 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="text-white">
@@ -86,32 +142,90 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
         </div>
 
         <div className="flex-1 p-2 md:p-4 flex items-center justify-center overflow-hidden">
-          <div className={`w-full h-full max-w-7xl max-h-full grid gap-2 ${getGridClass(participants.length)}`}>
-            {participants.map((p) => (
-              <ParticipantTile key={p.id} participant={p} isHost={meeting.host_id === currentUser?.id} />
-            ))}
-          </div>
+          {screenStream ? (
+            <div className="w-full h-full flex flex-col gap-2">
+              <div className="flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center border border-gray-800">
+                <VideoPlayer stream={screenStream} className="max-w-full max-h-full object-contain" />
+              </div>
+              <div className="h-32 flex gap-2 overflow-x-auto p-1 bg-gray-900 rounded-lg shrink-0">
+                {participants.map((p) => (
+                  <div key={p.id} className="w-48 h-full shrink-0">
+                    <ParticipantTile 
+                      participant={p} 
+                      isHost={meeting.host_id === currentUser?.id && p.id === localParticipantId} 
+                      stream={p.id === localParticipantId ? localStream : null}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={`w-full h-full max-w-7xl max-h-full grid gap-2 ${getGridClass(participants.length)}`}>
+              {participants.map((p) => (
+                <ParticipantTile 
+                  key={p.id} 
+                  participant={p} 
+                  isHost={meeting.host_id === currentUser?.id} 
+                  stream={p.id === localParticipantId ? localStream : null}
+                  isLocalUser={p.id === localParticipantId}
+                  onToggleMute={handleToggleMute}
+                  onToggleVideo={handleToggleVideo}
+                  onRemove={handleRemove}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <MeetingToolbar 
           isMuted={localMuted}
           isVideoOn={localVideo}
-          onToggleMute={() => setLocalMuted(!localMuted)}
-          onToggleVideo={() => setLocalVideo(!localVideo)}
-          onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+          onToggleMute={async () => {
+            const newMuted = !localMuted;
+            setLocalMuted(newMuted);
+            if (localParticipantId) {
+              try {
+                await toggleParticipantMute(localParticipantId, newMuted);
+                onRefreshParticipants();
+              } catch (e) {}
+            }
+          }}
+          onToggleVideo={async () => {
+            const newVideo = !localVideo;
+            setLocalVideo(newVideo);
+            if (localParticipantId) {
+              try {
+                await toggleParticipantVideo(localParticipantId, newVideo);
+                onRefreshParticipants();
+              } catch (e) {}
+            }
+          }}
+          onToggleSidebar={(panel) => setSidebar((prev) => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))}
+          onShareScreen={(stream) => setScreenStream(stream)}
           onLeave={handleLeave}
+          onEndForAll={handleEndForAll}
           isHost={isHost}
         />
       </div>
 
-      <ParticipantsSidebar 
-        isOpen={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        participants={participants}
-        isHost={isHost}
-        onToggleMute={handleToggleMute}
-        onRemove={handleRemove}
-        onMuteAll={handleMuteAll}
+      <RightSidebarContainer 
+        showParticipants={sidebar.participants}
+        showChat={sidebar.chat}
+        participantsComponent={
+          <ParticipantsSidebar 
+            participants={participants}
+            isHost={isHost}
+            localParticipantId={localParticipantId}
+            onToggleMute={handleToggleMute}
+            onToggleVideo={handleToggleVideo}
+            onRemove={handleRemove}
+            onMuteAll={handleMuteAll}
+            onAdmit={handleAdmit}
+          />
+        }
+        chatComponent={
+          <ChatSidebar currentUser={currentUser} />
+        }
       />
     </div>
   );

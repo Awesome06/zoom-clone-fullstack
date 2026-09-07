@@ -55,10 +55,10 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-[#10101C] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up border border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+      <div className="bg-[#094AC2] text-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up border border-blue-800">
+        <div className="flex items-center justify-between p-6 border-b border-blue-400/30">
           <h2 className="text-xl font-semibold">Schedule Meeting</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 text-white hover:bg-blue-600 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -71,7 +71,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Weekly Sync"
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-zoom-blue outline-none"
+              className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white placeholder-blue-200 focus:ring-2 focus:ring-white outline-none"
             />
           </div>
           
@@ -82,7 +82,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-zoom-blue outline-none"
+                className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white focus:ring-2 focus:ring-white outline-none"
               />
             </div>
             <div>
@@ -91,7 +91,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-zoom-blue outline-none"
+                className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white focus:ring-2 focus:ring-white outline-none"
               />
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
             <select
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-zoom-blue outline-none"
+              className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white focus:ring-2 focus:ring-white outline-none [&>option]:bg-[#094AC2]"
             >
               <option value="15">15 minutes</option>
               <option value="30">30 minutes</option>
@@ -112,20 +112,20 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
             </select>
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-200 bg-red-500/20 px-3 py-2 rounded-lg text-sm">{error}</p>}
 
           <div className="pt-4 flex gap-3">
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
             >
               Cancel
             </button>
             <button 
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 bg-zoom-blue hover:bg-zoom-blue-dark text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="flex-1 py-3 bg-white text-[#094AC2] hover:bg-blue-50 rounded-lg font-bold transition-colors disabled:opacity-50"
             >
               {loading ? "Scheduling..." : "Schedule"}
             </button>
