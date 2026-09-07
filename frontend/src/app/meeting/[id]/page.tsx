@@ -33,9 +33,12 @@ export default function MeetingPage() {
       const parts = await getParticipants(id);
       setParticipants(parts);
       
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to load meeting room");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to load meeting room");
+      }
     } finally {
       setLoading(false);
     }
@@ -77,12 +80,12 @@ export default function MeetingPage() {
         participants={participants}
         currentUser={user}
         onRefreshParticipants={async () => {
-            try {
+          try {
             const parts = await getParticipants(id);
             setParticipants(parts);
-            } catch (err) {
-            console.error("Failed to refresh participants");
-            }
+          } catch (err: Error | unknown) {
+            // Handle silently
+          }
         }}
         />
     </div>
