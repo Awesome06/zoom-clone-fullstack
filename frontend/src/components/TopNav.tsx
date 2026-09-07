@@ -26,7 +26,7 @@ export default function TopNav() {
       </div>
 
       <div className="w-48 flex items-center justify-end gap-4">
-        <button className="bg-zoom-blue hover:bg-zoom-blue-dark text-white text-sm font-medium px-4 py-1.5 rounded-full transition-colors">
+        <button className="bg-[#094AC2] hover:bg-blue-800 text-white text-sm font-medium px-4 py-1.5 rounded-full transition-colors">
           Upgrade
         </button>
         <div className="relative">

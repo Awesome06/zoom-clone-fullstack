@@ -17,7 +17,7 @@ export default function LeftSidebar() {
   ];
 
   return (
-    <div className="w-[72px] bg-white border-r border-gray-200 h-full flex flex-col justify-between py-2 shrink-0 z-10 relative">
+    <div className="w-[72px] bg-[#F3F4F6] border-r border-gray-200 h-full flex flex-col justify-between py-2 shrink-0 z-10 relative">
       <div className="flex flex-col gap-1 w-full">
         {navItems.map((item) => {
           const isActive = pathname === item.href;

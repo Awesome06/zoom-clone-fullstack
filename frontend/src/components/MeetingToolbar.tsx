@@ -185,7 +185,7 @@ export default function MeetingToolbar({
         </button>
         <button 
           onClick={handleShareScreen}
-          className={`flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-colors ${isSharing ? 'text-red-500 hover:bg-red-500/10' : 'text-green-500 hover:bg-green-500/10'}`}
+          className={`flex flex-col items-center justify-center w-16 h-14 rounded-xl transition-colors ${isSharing ? 'text-red-500 hover:bg-red-500/10' : 'bg-green-500 hover:bg-green-600 text-white'}`}
         >
           {isSharing ? <MonitorUp className="w-5 h-5 mb-1" /> : <Share className="w-5 h-5 mb-1" />}
           <span className="text-xs font-medium">{isSharing ? "Stop Share" : "Share Screen"}</span>

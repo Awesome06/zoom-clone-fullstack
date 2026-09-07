@@ -21,7 +21,7 @@ export default function ActionButtons({ onNewMeeting, onJoinMeeting, onScheduleM
 
       <button
         onClick={onJoinMeeting}
-        className="flex flex-col items-center justify-center p-8 bg-[#0B5CFF] hover:bg-blue-700 text-white rounded-2xl transition-all hover:scale-105 shadow-lg"
+        className="flex flex-col items-center justify-center p-8 bg-[#094AC2] hover:bg-blue-700 text-white rounded-2xl transition-all hover:scale-105 shadow-lg"
       >
         <PlusSquare className="w-12 h-12 mb-4" />
         <span className="font-semibold text-lg">Join</span>

@@ -100,7 +100,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
   };
 
   return (
-    <div className="flex h-screen bg-black overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-black overflow-hidden font-sans">
       <div className="flex-1 flex flex-col relative w-full h-full">
         <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-10 bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
           <div className="text-white">

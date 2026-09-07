@@ -52,6 +52,15 @@ export default function MeetingPage() {
       setMeeting(joinRes.meeting);
       setLocalParticipantId(joinRes.participant_id);
       
+      try {
+        const recentJson = localStorage.getItem("recent_joined_meetings");
+        let recent = recentJson ? JSON.parse(recentJson) : [];
+        recent = recent.filter((m: any) => m.id !== id);
+        recent.unshift({ id, title: joinRes.meeting.title });
+        if (recent.length > 3) recent = recent.slice(0, 3);
+        localStorage.setItem("recent_joined_meetings", JSON.stringify(recent));
+      } catch (e) {}
+
       const parts = await getParticipants(id);
       setParticipants(parts);
       
@@ -103,7 +112,7 @@ export default function MeetingPage() {
   }
 
   return (
-    <div className="absolute inset-0 z-50 bg-black">
+    <div className="flex-1 w-full h-full relative">
         <MeetingRoom 
         meeting={meeting}
         participants={participants}
