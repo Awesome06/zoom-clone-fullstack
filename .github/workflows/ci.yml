@@ -28,7 +28,7 @@ jobs:
         run: |
           cd backend
           ruff check .
-          ruff format --check .`
+          ruff format --check .
           
       # Uncomment when unit tests are added
       # - name: Test with pytest
