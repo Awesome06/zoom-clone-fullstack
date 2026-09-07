@@ -9,6 +9,7 @@ import ParticipantsSidebar from "./ParticipantsSidebar";
 import ChatSidebar from "./ChatSidebar";
 import RightSidebarContainer from "./RightSidebarContainer";
 import VideoPlayer from "./VideoPlayer";
+import { useLocalMediaStream } from "@/hooks/useLocalMediaStream";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 
@@ -27,6 +28,8 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
   const [localMuted, setLocalMuted] = useState(initialMuted);
   const [localVideo, setLocalVideo] = useState(initialVideoOn);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  const localStream = useLocalMediaStream(localVideo, localMuted);
 
   const isHost = currentUser?.id === meeting.host_id;
 
@@ -100,7 +103,11 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
               <div className="h-32 flex gap-2 overflow-x-auto p-1 bg-gray-900 rounded-lg shrink-0">
                 {participants.map((p) => (
                   <div key={p.id} className="w-48 h-full shrink-0">
-                    <ParticipantTile participant={p} isHost={meeting.host_id === currentUser?.id} />
+                    <ParticipantTile 
+                      participant={p} 
+                      isHost={meeting.host_id === currentUser?.id} 
+                      stream={p.id === currentUser?.id ? localStream : null}
+                    />
                   </div>
                 ))}
               </div>
@@ -108,7 +115,12 @@ export default function MeetingRoom({ meeting, participants, currentUser, initia
           ) : (
             <div className={`w-full h-full max-w-7xl max-h-full grid gap-2 ${getGridClass(participants.length)}`}>
               {participants.map((p) => (
-                <ParticipantTile key={p.id} participant={p} isHost={meeting.host_id === currentUser?.id} />
+                <ParticipantTile 
+                  key={p.id} 
+                  participant={p} 
+                  isHost={meeting.host_id === currentUser?.id} 
+                  stream={p.id === currentUser?.id ? localStream : null}
+                />
               ))}
             </div>
           )}

@@ -2,22 +2,32 @@
 
 import { Participant } from "@/lib/types";
 import { MicOff, VideoOff } from "lucide-react";
+import VideoPlayer from "./VideoPlayer";
+import { useAudioVolume } from "@/hooks/useAudioVolume";
 
 interface ParticipantTileProps {
   participant: Participant;
   isHost?: boolean;
+  stream?: MediaStream | null;
 }
 
-export default function ParticipantTile({ participant, isHost }: ParticipantTileProps) {
-  const isSpeaking = !participant.is_muted && Math.random() > 0.7;
+export default function ParticipantTile({ participant, isHost, stream }: ParticipantTileProps) {
+  const isSpeakingByVolume = useAudioVolume(stream || null);
+  const isSpeakingMock = !participant.is_muted && Math.random() > 0.7;
+  const isSpeaking = stream ? isSpeakingByVolume : isSpeakingMock;
+  const isVideoOn = stream ? stream.getVideoTracks().length > 0 : participant.is_video_on;
 
   return (
     <div className={`relative w-full h-full bg-gray-900 rounded-xl overflow-hidden ${isSpeaking ? 'ring-4 ring-green-500' : 'ring-1 ring-gray-800'}`}>
       <div className="absolute inset-0 flex items-center justify-center">
-        {participant.is_video_on ? (
-          <div className="w-32 h-32 rounded-full bg-zoom-blue flex items-center justify-center text-white text-5xl font-bold uppercase shadow-lg">
-            {participant.display_name.charAt(0)}
-          </div>
+        {isVideoOn ? (
+          stream ? (
+            <VideoPlayer stream={stream} className="w-full h-full object-cover transform scale-x-[-1]" />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-[#0B5CFF] flex items-center justify-center text-white text-5xl font-bold uppercase shadow-lg">
+              {participant.display_name.charAt(0)}
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-gray-800 flex items-center justify-center text-gray-500 text-3xl font-bold uppercase mb-4">

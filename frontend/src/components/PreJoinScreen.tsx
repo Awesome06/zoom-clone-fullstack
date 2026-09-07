@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { Meeting } from "@/lib/types";
 import VideoPlayer from "./VideoPlayer";
+import { useAudioLevel } from "@/hooks/useAudioVolume";
 
 interface PreJoinScreenProps {
   meeting: Meeting | null;
@@ -17,26 +18,23 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
   const [isVideoOn, setIsVideoOn] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const audioLevel = useAudioLevel(isMuted ? null : stream);
 
   useEffect(() => {
-    if (isVideoOn) {
-      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-        .then((mediaStream) => {
-          setStream(mediaStream);
-        })
-        .catch((err) => {
-          console.error("Failed to get local video:", err);
-          setIsVideoOn(false);
-        });
-    } else {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-      }
-    }
+    let activeStream: MediaStream | null = null;
+    navigator.mediaDevices.getUserMedia({ video: isVideoOn, audio: true })
+      .then((mediaStream) => {
+        activeStream = mediaStream;
+        setStream(mediaStream);
+      })
+      .catch((err) => {
+        console.error("Failed to get local media:", err);
+        setIsVideoOn(false);
+      });
+
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
       }
     };
   }, [isVideoOn]);
@@ -70,6 +68,19 @@ export default function PreJoinScreen({ meeting, defaultName, onJoin }: PreJoinS
           ) : (
             <div className="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-3xl font-medium">
               {name.charAt(0).toUpperCase() || "U"}
+            </div>
+          )}
+
+          {/* Volume Indicator */}
+          {!isMuted && (
+            <div className="absolute top-4 left-4 bg-black/60 rounded-lg p-2 flex items-center gap-2 backdrop-blur-sm">
+              <Mic className="w-4 h-4 text-green-500" />
+              <div className="w-20 h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-75"
+                  style={{ width: `${audioLevel}%` }}
+                />
+              </div>
             </div>
           )}
 
