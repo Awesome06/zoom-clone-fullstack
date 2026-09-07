@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./zoom_clone.db"
     DEFAULT_HOST_NAME: str = "Arjun Bhatnagar"
@@ -7,5 +8,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()

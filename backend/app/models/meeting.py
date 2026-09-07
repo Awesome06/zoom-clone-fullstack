@@ -1,6 +1,9 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+
 from app.core.database import Base
+
 
 class Meeting(Base):
     __tablename__ = "meetings"
@@ -11,8 +14,8 @@ class Meeting(Base):
     description = Column(String, nullable=True)
     host_id = Column(Integer, ForeignKey("users.id"))
     is_instant = Column(Boolean, default=False)
-    status = Column(String, default="scheduled") # scheduled, active, ended
+    status = Column(String, default="scheduled")  # scheduled, active, ended
     scheduled_start = Column(DateTime, nullable=True)
     duration_minutes = Column(Integer, default=60)
     invite_link = Column(String, unique=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
