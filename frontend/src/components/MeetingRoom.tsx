@@ -6,6 +6,8 @@ import { toggleParticipantMute, removeParticipant, endMeeting } from "@/lib/api"
 import ParticipantTile from "./ParticipantTile";
 import MeetingToolbar from "./MeetingToolbar";
 import ParticipantsSidebar from "./ParticipantsSidebar";
+import ChatSidebar from "./ChatSidebar";
+import RightSidebarContainer from "./RightSidebarContainer";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 
@@ -13,14 +15,16 @@ interface MeetingRoomProps {
   meeting: Meeting;
   participants: Participant[];
   currentUser: User | null;
+  initialMuted: boolean;
+  initialVideoOn: boolean;
   onRefreshParticipants: () => void;
 }
 
-export default function MeetingRoom({ meeting, participants, currentUser, onRefreshParticipants }: MeetingRoomProps) {
+export default function MeetingRoom({ meeting, participants, currentUser, initialMuted, initialVideoOn, onRefreshParticipants }: MeetingRoomProps) {
   const router = useRouter();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [localMuted, setLocalMuted] = useState(false);
-  const [localVideo, setLocalVideo] = useState(true);
+  const [sidebar, setSidebar] = useState({ participants: false, chat: false });
+  const [localMuted, setLocalMuted] = useState(initialMuted);
+  const [localVideo, setLocalVideo] = useState(initialVideoOn);
 
   const isHost = currentUser?.id === meeting.host_id;
 
@@ -98,20 +102,27 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
           isVideoOn={localVideo}
           onToggleMute={() => setLocalMuted(!localMuted)}
           onToggleVideo={() => setLocalVideo(!localVideo)}
-          onToggleSidebar={() => setSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={(panel) => setSidebar((prev) => ({ ...prev, [panel]: !prev[panel as keyof typeof prev] }))}
           onLeave={handleLeave}
           isHost={isHost}
         />
       </div>
 
-      <ParticipantsSidebar 
-        isOpen={isSidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        participants={participants}
-        isHost={isHost}
-        onToggleMute={handleToggleMute}
-        onRemove={handleRemove}
-        onMuteAll={handleMuteAll}
+      <RightSidebarContainer 
+        showParticipants={sidebar.participants}
+        showChat={sidebar.chat}
+        participantsComponent={
+          <ParticipantsSidebar 
+            participants={participants}
+            isHost={isHost}
+            onToggleMute={handleToggleMute}
+            onRemove={handleRemove}
+            onMuteAll={handleMuteAll}
+          />
+        }
+        chatComponent={
+          <ChatSidebar currentUser={currentUser} />
+        }
       />
     </div>
   );

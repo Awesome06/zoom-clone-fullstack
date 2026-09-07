@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Meeting, Participant, User } from "@/lib/types";
 import { getMeetingDetails, getParticipants, joinMeeting, getCurrentUser } from "@/lib/api";
 import MeetingRoom from "@/components/MeetingRoom";
+import PreJoinScreen from "@/components/PreJoinScreen";
 
 export default function MeetingPage() {
   const { id } = useParams() as { id: string };
@@ -15,40 +16,56 @@ export default function MeetingPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hasJoined, setHasJoined] = useState(false);
+  const [initialMuted, setInitialMuted] = useState(false);
+  const [initialVideoOn, setInitialVideoOn] = useState(true);
 
   useEffect(() => {
-    const loadRoom = async () => {
+    const initRoom = async () => {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
 
-        let currentMeeting = await getMeetingDetails(id);
-        const displayName = sessionStorage.getItem("join_display_name") || currentUser.name;
-        
-        const joinRes = await joinMeeting(id, displayName);
-        currentMeeting = joinRes.meeting;
-        
+        const currentMeeting = await getMeetingDetails(id);
         setMeeting(currentMeeting);
-        sessionStorage.removeItem("join_display_name");
-
-        const parts = await getParticipants(id);
-        setParticipants(parts);
-        
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
-          setError("Failed to load meeting room");
+          setError("Failed to load meeting details");
         }
       } finally {
         setLoading(false);
       }
     };
 
-    loadRoom();
+    initRoom();
   }, [id]);
 
-  if (loading) {
+  const handleJoin = async (name: string, isMuted: boolean, isVideoOn: boolean) => {
+    setLoading(true);
+    setInitialMuted(isMuted);
+    setInitialVideoOn(isVideoOn);
+    try {
+      const joinRes = await joinMeeting(id, name);
+      setMeeting(joinRes.meeting);
+      
+      const parts = await getParticipants(id);
+      setParticipants(parts);
+      
+      setHasJoined(true);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to join meeting");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !hasJoined) {
     return (
       <div className="flex h-screen items-center justify-center bg-black w-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -73,12 +90,24 @@ export default function MeetingPage() {
     );
   }
 
+  if (!hasJoined) {
+    return (
+      <PreJoinScreen 
+        meeting={meeting} 
+        defaultName={user?.name || ""} 
+        onJoin={handleJoin} 
+      />
+    );
+  }
+
   return (
     <div className="absolute inset-0 z-50 bg-black">
         <MeetingRoom 
         meeting={meeting}
         participants={participants}
         currentUser={user}
+        initialMuted={initialMuted}
+        initialVideoOn={initialVideoOn}
         onRefreshParticipants={async () => {
           try {
             const parts = await getParticipants(id);
