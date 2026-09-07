@@ -38,7 +38,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
       await toggleParticipantMute(id, !currentMuted);
       onRefreshParticipants();
     } catch (err) {
-      console.error(err);
+      // Handle silently for demo
     }
   };
 
@@ -48,7 +48,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
         await removeParticipant(id);
         onRefreshParticipants();
       } catch (err) {
-        console.error(err);
+        // Handle silently for demo
       }
     }
   };
@@ -62,7 +62,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, onRefr
       }
       onRefreshParticipants();
     } catch (err) {
-      console.error(err);
+      // Handle silently for demo
     }
   };
 

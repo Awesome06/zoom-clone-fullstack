@@ -42,8 +42,12 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
       });
       onScheduled(meeting);
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to schedule meeting");
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to schedule meeting");
+      }
     } finally {
       setLoading(false);
     }

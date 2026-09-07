@@ -30,7 +30,7 @@ export default function Dashboard() {
       setUpcoming(up);
       setRecent(rec);
     } catch (err) {
-      console.error(err);
+      // Handle silently
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export default function Dashboard() {
       const { meeting_id } = await createInstantMeeting();
       router.push(`/meeting/${meeting_id}`);
     } catch (err) {
-      console.error("Failed to start instant meeting", err);
+      // Handle silently
     }
   };
 

@@ -10,7 +10,9 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    getCurrentUser().then(setUser).catch(console.error);
+    getCurrentUser().then(setUser).catch(() => {
+      // User not found or not seeded yet
+    });
   }, []);
 
   return (
