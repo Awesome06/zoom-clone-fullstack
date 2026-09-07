@@ -1,6 +1,10 @@
-from .user import UserResponse, UserBase
 from .meeting import (
-    MeetingCreate, ScheduleMeetingRequest, InstantMeetingResponse, 
-    MeetingResponse, JoinMeetingRequest, JoinMeetingResponse
+    InstantMeetingResponse,
+    JoinMeetingRequest,
+    JoinMeetingResponse,
+    MeetingCreate,
+    MeetingResponse,
+    ScheduleMeetingRequest,
 )
 from .participant import ParticipantResponse, ParticipantUpdate
+from .user import UserBase, UserResponse
