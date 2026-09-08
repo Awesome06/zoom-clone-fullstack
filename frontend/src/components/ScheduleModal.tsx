@@ -13,6 +13,7 @@ interface ScheduleModalProps {
 
 export default function ScheduleModal({ isOpen, onClose, onScheduled }: ScheduleModalProps) {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState("60");
@@ -37,6 +38,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
     try {
       const meeting = await scheduleMeeting({
         title,
+        description,
         scheduled_start,
         duration_minutes: parseInt(duration)
       });
@@ -72,6 +74,17 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Weekly Sync"
               className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white placeholder-blue-200 focus:ring-2 focus:ring-white outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+            <textarea 
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Meeting agenda or details"
+              rows={2}
+              className="w-full px-4 py-2 rounded-lg border border-transparent bg-white/10 text-white placeholder-blue-200 focus:ring-2 focus:ring-white outline-none resize-none"
             />
           </div>
           

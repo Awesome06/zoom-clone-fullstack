@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Video, Plus, Calendar, Info, RefreshCw } from "lucide-react";
-import { createInstantMeeting } from "@/lib/api";
+import { Video, Plus, Calendar, Info, RefreshCw, Clock } from "lucide-react";
+import { createInstantMeeting, getUpcomingMeetings, getRecentMeetings } from "@/lib/api";
+import { Meeting } from "@/lib/types";
 import ScheduleModal from "@/components/ScheduleModal";
 
 export default function HomeView() {
@@ -12,8 +13,28 @@ export default function HomeView() {
   const [currentDate, setCurrentDate] = useState("");
   
   const [isScheduleOpen, setScheduleOpen] = useState(false);
+  const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
+  const [recentMeetings, setRecentMeetings] = useState<Meeting[]>([]);
+  const [loadingMeetings, setLoadingMeetings] = useState(true);
+
+  const fetchMeetings = async () => {
+    setLoadingMeetings(true);
+    try {
+      const [upcoming, recent] = await Promise.all([
+        getUpcomingMeetings(),
+        getRecentMeetings()
+      ]);
+      setUpcomingMeetings(upcoming);
+      setRecentMeetings(recent);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMeetings(false);
+    }
+  };
 
   useEffect(() => {
+    fetchMeetings();
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }));
@@ -79,33 +100,101 @@ export default function HomeView() {
         </p>
       </div>
 
-      {/* Upcoming Meetings Panel */}
-      <div className="w-full max-w-3xl bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[280px]">
-        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-          <button className="flex items-center gap-2 text-[13px] font-semibold text-gray-800 hover:bg-gray-50 px-2 py-1 rounded border border-gray-200">
-            <Calendar className="w-3.5 h-3.5 text-gray-500" />
-            Today, Sep 8
-            <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-          </button>
-          <button className="p-1.5 hover:bg-gray-100 rounded text-gray-400">
-            <RefreshCw className="w-4 h-4" />
-          </button>
+      {/* Meetings Panels */}
+      <div className="w-full max-w-4xl flex flex-col md:flex-row gap-6 mb-10">
+        {/* Upcoming Meetings Panel */}
+        <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[360px] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-[15px]">
+              <Calendar className="w-4 h-4 text-zoom-blue" />
+              Upcoming
+            </h3>
+            <button onClick={fetchMeetings} className="p-1.5 hover:bg-gray-200 rounded-md text-gray-500 transition-colors">
+              <RefreshCw className={`w-4 h-4 ${loadingMeetings ? 'animate-spin text-zoom-blue' : ''}`} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {loadingMeetings ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zoom-blue"></div>
+              </div>
+            ) : upcomingMeetings.length > 0 ? (
+              <div className="flex flex-col">
+                {upcomingMeetings.map(m => (
+                  <div key={m.id} className="p-5 border-b border-gray-100 hover:bg-gray-50 transition-colors flex justify-between items-center group">
+                    <div>
+                      <div className="font-semibold text-gray-900 text-[15px] group-hover:text-zoom-blue transition-colors line-clamp-1">{m.title}</div>
+                      <div className="text-[13px] text-gray-500 mt-1 flex items-center gap-3 font-medium">
+                        <span className="text-gray-700">{m.scheduled_start ? new Date(m.scheduled_start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Time TBD'}</span>
+                        <span className="opacity-50">|</span>
+                        <span>ID: {m.meeting_id}</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => router.push(`/meeting/${m.meeting_id}`)}
+                      className="px-5 py-2 bg-zoom-blue hover:bg-zoom-blue-dark text-white text-[13px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-sm shrink-0 ml-4"
+                    >
+                      Start
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                  <Calendar className="w-8 h-8 text-zoom-blue" />
+                </div>
+                <span className="text-sm text-gray-600 font-medium">No upcoming meetings</span>
+                <span className="text-[13px] text-gray-400 mt-1">Schedule one to get started</span>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <svg width="120" height="90" viewBox="0 0 120 90" fill="none" xmlns="http://www.w3.org/2000/svg" className="mb-4">
-             {/* Beach umbrella basic representation */}
-             <ellipse cx="60" cy="75" rx="30" ry="10" fill="#F0F0F0" />
-             <path d="M40 30 C 40 10, 80 10, 80 30 Z" fill="#D3E2F4" />
-             <path d="M60 10 L 60 70" stroke="#B0C4DE" strokeWidth="2" />
-             <path d="M50 70 L 70 70" stroke="#B0C4DE" strokeWidth="2" />
-          </svg>
-          <span className="text-[13px] text-gray-500 font-medium">No meetings scheduled.</span>
-        </div>
-        <div className="px-4 py-3 border-t border-gray-100 flex items-center">
-          <button className="text-[13px] text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1">
-            Open recordings
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
+
+        {/* Recent Meetings Panel */}
+        <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col h-[360px] shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-[15px]">
+              <Clock className="w-4 h-4 text-gray-500" />
+              Recent
+            </h3>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {loadingMeetings ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zoom-blue"></div>
+              </div>
+            ) : recentMeetings.length > 0 ? (
+              <div className="flex flex-col">
+                {recentMeetings.map(m => (
+                  <div key={m.id} className="p-5 border-b border-gray-100 hover:bg-gray-50 transition-colors flex justify-between items-center group">
+                    <div>
+                      <div className="font-semibold text-gray-900 text-[15px] line-clamp-1">{m.title}</div>
+                      <div className="text-[13px] text-gray-500 mt-1 flex items-center gap-3 font-medium">
+                        <span>{(m.scheduled_start || m.created_at) ? new Date(m.scheduled_start || m.created_at!).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : 'Date TBD'}</span>
+                        <span className="opacity-50">|</span>
+                        <span>ID: {m.meeting_id}</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => router.push(`/meeting/${m.meeting_id}`)}
+                      className="px-5 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-[13px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-sm shrink-0 ml-4"
+                    >
+                      Join
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                  <Clock className="w-8 h-8 text-gray-400" />
+                </div>
+                <span className="text-sm text-gray-600 font-medium">No recent meetings</span>
+                <span className="text-[13px] text-gray-400 mt-1">Join a meeting to see history</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -114,7 +203,9 @@ export default function HomeView() {
       <ScheduleModal 
         isOpen={isScheduleOpen}
         onClose={() => setScheduleOpen(false)}
-        onScheduled={() => {}}
+        onScheduled={() => {
+          fetchMeetings();
+        }}
       />
     </div>
   );
