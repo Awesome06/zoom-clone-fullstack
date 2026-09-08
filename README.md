@@ -48,4 +48,4 @@ start.bat
 
 ## Deployment
 *   **Frontend Live Link:** [URL here (To be Added)]
-*   **Backend API Link:** [URL here (To be Added)]
+*   **Backend API Link:** [https://zoom-clone-backend-zhvw.onrender.com](https://zoom-clone-backend-zhvw.onrender.com)
