@@ -188,7 +188,7 @@ def delete_meeting(meeting_id: str, db: Session = Depends(get_db)):
     db.query(ChatMessage).filter(ChatMessage.meeting_id == meeting.id).delete()
     db.delete(meeting)
     db.commit()
-    return None
+    return
 
 
 @router.post("/{meeting_id}/join", response_model=JoinMeetingResponse)
