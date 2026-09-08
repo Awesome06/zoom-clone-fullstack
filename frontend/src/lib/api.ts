@@ -51,6 +51,9 @@ export const scheduleMeeting = (data: { title: string; description?: string; sch
 export const editMeeting = (meetingId: string, data: { title?: string; description?: string; scheduled_start?: string; duration_minutes?: number }) => 
   fetchApi<Meeting>(`/meetings/${meetingId}`, { method: 'PATCH', body: JSON.stringify(data) });
 
+/** Delete a scheduled meeting. */
+export const deleteMeeting = (meetingId: string) => fetchApi<void>(`/meetings/${meetingId}`, { method: 'DELETE' });
+
 /** Get full details of a specific meeting by its public string ID. */
 export const getMeetingDetails = (meetingId: string) => fetchApi<Meeting>(`/meetings/${meetingId}`);
 

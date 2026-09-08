@@ -168,6 +168,25 @@ def edit_meeting(meeting_id: str, req: EditMeetingRequest, db: Session = Depends
     return meeting
 
 
+@router.delete("/{meeting_id}", status_code=204)
+def delete_meeting(meeting_id: str, db: Session = Depends(get_db)):
+    """Delete a scheduled meeting and all its associated data."""
+    if not (host := get_host_user(db)):
+        raise HTTPException(status_code=403, detail="Host user not found")
+
+    if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.host_id != host.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this meeting")
+
+    db.query(Participant).filter(Participant.meeting_id == meeting.id).delete()
+    db.query(ChatMessage).filter(ChatMessage.meeting_id == meeting.id).delete()
+    db.delete(meeting)
+    db.commit()
+    return None
+
+
 @router.post("/{meeting_id}/join", response_model=JoinMeetingResponse)
 def join_meeting(meeting_id: str, req: JoinMeetingRequest, db: Session = Depends(get_db)):
     """Add a participant to an existing meeting and activate it if it was scheduled."""
