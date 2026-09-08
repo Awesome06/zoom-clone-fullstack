@@ -233,7 +233,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
           />
         }
         chatComponent={
-          <ChatSidebar currentUser={currentUser} />
+          <ChatSidebar currentUser={currentUser} meeting={meeting} />
         }
       />
     </div>

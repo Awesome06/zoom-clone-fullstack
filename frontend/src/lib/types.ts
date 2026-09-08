@@ -49,3 +49,12 @@ export interface JoinMeetingResponse {
   meeting: Meeting;
   participant_id: number;
 }
+
+/** Represents a persisted chat message within a meeting room. */
+export interface ChatMessage {
+  id: number;
+  meeting_id: number;
+  sender_name: string;
+  text: string;
+  timestamp: string;
+}

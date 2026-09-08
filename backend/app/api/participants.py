@@ -45,6 +45,25 @@ def remove_participant(participant_id: int, db: Session = Depends(get_db)):
     if not (participant := db.query(Participant).filter(Participant.id == participant_id).first()):
         raise HTTPException(status_code=404, detail="Participant not found")
         
+    meeting_id = participant.meeting_id
     db.delete(participant)
     db.commit()
+
+    # Check if this was the last participant
+    remaining = db.query(Participant).filter(Participant.meeting_id == meeting_id).count()
+    if remaining == 0:
+        from app.models.chat import ChatMessage
+        from datetime import UTC, datetime, timedelta
+        
+        db.query(ChatMessage).filter(ChatMessage.meeting_id == meeting_id).delete()
+        
+        # If it's a scheduled meeting and the end time has passed, set it to ended
+        meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+        if meeting and not meeting.is_instant and meeting.scheduled_start:
+            end_time = meeting.scheduled_start.replace(tzinfo=UTC) + timedelta(minutes=meeting.duration_minutes)
+            if datetime.now(UTC) >= end_time:
+                meeting.status = "ended"
+                
+        db.commit()
+
     return

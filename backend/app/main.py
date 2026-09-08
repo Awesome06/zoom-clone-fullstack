@@ -10,11 +10,15 @@ from datetime import UTC, datetime, timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from app.api import api_router
 from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.models.meeting import Meeting
 from app.models.user import User
+from app.models.participant import Participant
+from app.models.chat import ChatMessage
 
 
 def seed_database():
@@ -72,12 +76,61 @@ def seed_database():
     finally:
         db.close()
 
+def cleanup_meetings():
+    """Delete meetings older than 1 day, or ended meetings whose scheduled end time has passed."""
+    db = SessionLocal()
+    now = datetime.now(UTC)
+    try:
+        meetings = db.query(Meeting).all()
+        for m in meetings:
+            should_delete = False
+            
+            # Rule 1: Older than 1 day
+            ref_time = m.scheduled_start or m.created_at
+            if ref_time and ref_time.replace(tzinfo=UTC) < now - timedelta(days=1):
+                should_delete = True
+                
+            # Rule 2: Ended and end time has passed
+            if m.status == 'ended':
+                if m.scheduled_start:
+                    end_time = m.scheduled_start.replace(tzinfo=UTC) + timedelta(minutes=m.duration_minutes)
+                    if now >= end_time:
+                        should_delete = True
+                else:
+                    should_delete = True # Instant meeting ended
+            elif not m.is_instant and m.scheduled_start:
+                # Rule 3: Scheduled meeting not explicitly ended, but time passed and empty
+                end_time = m.scheduled_start.replace(tzinfo=UTC) + timedelta(minutes=m.duration_minutes)
+                if now >= end_time:
+                    p_count = db.query(Participant).filter(Participant.meeting_id == m.id).count()
+                    if p_count == 0:
+                        should_delete = True
+            
+            if should_delete:
+                db.query(Participant).filter(Participant.meeting_id == m.id).delete()
+                db.query(ChatMessage).filter(ChatMessage.meeting_id == m.id).delete()
+                db.delete(m)
+        db.commit()
+    except Exception as e:
+        print(f"Cleanup error: {e}")
+    finally:
+        db.close()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan context manager for startup and shutdown events."""
     seed_database()
+    cleanup_meetings() # Run cleanup on startup
+    
+    # Initialize Nightly Cron Job
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(cleanup_meetings, 'cron', hour=23, minute=59)
+    scheduler.start()
+    
     yield
+    
+    scheduler.shutdown()
 
 
 app = FastAPI(title="Zoom Clone API", lifespan=lifespan)

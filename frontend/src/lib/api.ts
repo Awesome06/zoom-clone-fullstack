@@ -75,3 +75,14 @@ export const removeParticipant = (participantId: number) =>
 /** Terminate a meeting (Host only). */
 export const endMeeting = (meetingId: string) => 
   fetchApi<Meeting>(`/meetings/${meetingId}/end`, { method: 'PATCH' });
+
+/** Get all persisted chat messages for a meeting. */
+export const getMeetingChat = (meetingId: string) => 
+  fetchApi<import('./types').ChatMessage[]>(`/meetings/${meetingId}/chat`);
+
+/** Send a new chat message to a meeting. */
+export const sendMeetingChat = (meetingId: string, senderName: string, text: string) => 
+  fetchApi<import('./types').ChatMessage>(`/meetings/${meetingId}/chat`, { 
+    method: 'POST', 
+    body: JSON.stringify({ sender_name: senderName, text }) 
+  });
