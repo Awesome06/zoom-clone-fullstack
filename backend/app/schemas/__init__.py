@@ -1,8 +1,8 @@
+from .chat import ChatMessageCreate, ChatMessageResponse
 from .meeting import (
     InstantMeetingResponse,
     JoinMeetingRequest,
     JoinMeetingResponse,
-    MeetingCreate,
     MeetingResponse,
     ScheduleMeetingRequest,
 )

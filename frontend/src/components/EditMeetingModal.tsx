@@ -1,23 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { scheduleMeeting } from "@/lib/api";
+import { editMeeting } from "@/lib/api";
 import { Meeting } from "@/lib/types";
 
-/** Props required to mount the Schedule Modal. */
-interface ScheduleModalProps {
+/** Props required to mount the Edit Meeting Modal. */
+interface EditMeetingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onScheduled: (meeting: Meeting) => void;
+  onEdited: (meeting: Meeting) => void;
+  meeting: Meeting | null;
 }
 
 /**
- * Schedule Meeting Modal.
- * Renders a form overlay to allow users to schedule a future meeting,
- * pick a date/time, and specify a duration.
+ * Edit Meeting Modal.
+ * Renders a form overlay to allow users to edit an existing scheduled meeting.
  */
-export default function ScheduleModal({ isOpen, onClose, onScheduled }: ScheduleModalProps) {
+export default function EditMeetingModal({ isOpen, onClose, onEdited, meeting }: EditMeetingModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -26,7 +26,31 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (meeting && isOpen) {
+      setTitle(meeting.title);
+      setDescription(meeting.description || "");
+      setDuration(meeting.duration_minutes.toString());
+      if (meeting.scheduled_start) {
+        // Ensure UTC parsing by appending 'Z' if missing
+        const dateStr = meeting.scheduled_start.endsWith('Z') ? meeting.scheduled_start : `${meeting.scheduled_start}Z`;
+        const d = new Date(dateStr);
+        
+        // Extract local date components
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        setDate(`${year}-${month}-${day}`);
+        
+        // Extract local time components
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        setTime(`${hours}:${mins}`);
+      }
+    }
+  }, [meeting, isOpen]);
+
+  if (!isOpen || !meeting) return null;
 
   /** Handle form submission and send the payload to the backend API. */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,19 +67,19 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
 
     setLoading(true);
     try {
-      const meeting = await scheduleMeeting({
+      const updatedMeeting = await editMeeting(meeting.meeting_id, {
         title,
         description,
         scheduled_start,
         duration_minutes: parseInt(duration)
       });
-      onScheduled(meeting);
+      onEdited(updatedMeeting);
       onClose();
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Failed to schedule meeting");
+        setError("Failed to edit meeting");
       }
     } finally {
       setLoading(false);
@@ -66,7 +90,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="bg-[#094AC2] text-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up border border-blue-800">
         <div className="flex items-center justify-between p-6 border-b border-blue-400/30">
-          <h2 className="text-xl font-semibold">Schedule Meeting</h2>
+          <h2 className="text-xl font-semibold">Edit Meeting</h2>
           <button onClick={onClose} className="p-2 text-white hover:bg-blue-600 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -147,7 +171,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
               disabled={loading}
               className="flex-1 py-3 bg-white text-[#094AC2] hover:bg-blue-50 rounded-lg font-bold transition-colors disabled:opacity-50"
             >
-              {loading ? "Scheduling..." : "Schedule"}
+              {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>
