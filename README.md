@@ -57,5 +57,5 @@ start.bat
 ```
 
 ## Deployment
-*   **Frontend Live Link:** [URL here (To be Added)]
+*   **Frontend Live Link:** [https://zoom-clone-fullstack-dsmn1.vercel.app/](https://zoom-clone-fullstack-dsmn1.vercel.app/)
 *   **Backend API Link:** [https://zoom-clone-backend-zhvw.onrender.com](https://zoom-clone-backend-zhvw.onrender.com)
