@@ -7,6 +7,11 @@ import { getMeetingDetails, getParticipants, joinMeeting, getCurrentUser } from 
 import MeetingRoom from "@/components/MeetingRoom";
 import { Video, VideoOff, Mic, MicOff } from "lucide-react";
 
+/**
+ * Meeting Room Entry Page.
+ * Responsible for verifying the meeting exists, prompting the user for their display name,
+ * and subsequently wrapping the main MeetingRoom component.
+ */
 export default function MeetingPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
@@ -23,6 +28,7 @@ export default function MeetingPage() {
   const [displayName, setDisplayName] = useState("");
   const joinAttempted = useRef(false);
 
+  /** Fetch meeting details and current user on mount to prepare the preview screen. */
   useEffect(() => {
     if (joinAttempted.current) return;
     joinAttempted.current = true;
@@ -52,12 +58,16 @@ export default function MeetingPage() {
     initRoom();
   }, [id]);
 
+  /**
+   * Register the participant in the backend and load the main meeting interface.
+   * Tracks this meeting in the local storage history.
+   */
   const handleJoin = async (name: string, isMuted: boolean, isVideoOn: boolean) => {
     setLoading(true);
     setInitialMuted(isMuted);
     setInitialVideoOn(isVideoOn);
     try {
-      const joinRes = await joinMeeting(id, name);
+      const joinRes = await joinMeeting(id, name, isMuted, isVideoOn);
       setMeeting(joinRes.meeting);
       setLocalParticipantId(joinRes.participant_id);
       

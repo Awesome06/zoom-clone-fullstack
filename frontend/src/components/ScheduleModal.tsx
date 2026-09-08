@@ -5,12 +5,18 @@ import { X } from "lucide-react";
 import { scheduleMeeting } from "@/lib/api";
 import { Meeting } from "@/lib/types";
 
+/** Props required to mount the Schedule Modal. */
 interface ScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScheduled: (meeting: Meeting) => void;
 }
 
+/**
+ * Schedule Meeting Modal.
+ * Renders a form overlay to allow users to schedule a future meeting,
+ * pick a date/time, and specify a duration.
+ */
 export default function ScheduleModal({ isOpen, onClose, onScheduled }: ScheduleModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -22,6 +28,7 @@ export default function ScheduleModal({ isOpen, onClose, onScheduled }: Schedule
 
   if (!isOpen) return null;
 
+  /** Handle form submission and send the payload to the backend API. */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");

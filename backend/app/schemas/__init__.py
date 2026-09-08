@@ -2,7 +2,6 @@ from .meeting import (
     InstantMeetingResponse,
     JoinMeetingRequest,
     JoinMeetingResponse,
-    MeetingCreate,
     MeetingResponse,
     ScheduleMeetingRequest,
 )

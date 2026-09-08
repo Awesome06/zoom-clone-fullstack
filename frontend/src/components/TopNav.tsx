@@ -2,14 +2,21 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, Download, Check, X, Minus, Clock } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 type PresenceState = "available" | "away" | "dnd" | "busy";
 
+/**
+ * Top Navigation Bar.
+ * Contains global search, brand logo, and the user profile dropdown.
+ */
 export default function TopNav() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [presence, setPresence] = useState<PresenceState>("available");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
+  /** Close the profile dropdown when clicking outside of it. */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {

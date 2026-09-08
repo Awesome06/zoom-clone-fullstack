@@ -1,96 +1,77 @@
+/**
+ * API service layer for communicating with the FastAPI backend.
+ * Uses a centralized fetchApi helper for DRY requests.
+ */
+
 import { Meeting, InstantMeetingResponse, JoinMeetingResponse, Participant, User } from './types';
 
 const API_BASE = '/api';
 
-export async function getCurrentUser(): Promise<User> {
-  const res = await fetch(`${API_BASE}/users/me`);
-  if (!res.ok) throw new Error('Failed to fetch user');
-  return res.json();
-}
-
-export async function getUpcomingMeetings(): Promise<Meeting[]> {
-  const res = await fetch(`${API_BASE}/meetings/upcoming`);
-  if (!res.ok) throw new Error('Failed to fetch upcoming meetings');
-  return res.json();
-}
-
-export async function getRecentMeetings(): Promise<Meeting[]> {
-  const res = await fetch(`${API_BASE}/meetings/recent`);
-  if (!res.ok) throw new Error('Failed to fetch recent meetings');
-  return res.json();
-}
-
-export async function createInstantMeeting(): Promise<InstantMeetingResponse> {
-  const res = await fetch(`${API_BASE}/meetings/instant`, {
-    method: 'POST',
+/**
+ * Generic fetch wrapper to handle errors, JSON parsing, and boilerplate.
+ * @param endpoint The API path (e.g., `/users/me`)
+ * @param options Fetch options (method, body, headers)
+ */
+async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers: {
+      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
+      ...options?.headers,
+    },
   });
-  if (!res.ok) throw new Error('Failed to create instant meeting');
+  
+  if (!res.ok) {
+    const errText = await res.text().catch(() => 'Unknown error');
+    throw new Error(`API Error (${res.status}): ${errText}`);
+  }
+  
+  // Return empty string/null for 204 No Content
+  if (res.status === 204) return null as any as T;
   return res.json();
 }
 
-export async function scheduleMeeting(data: { title: string; description?: string; scheduled_start: string; duration_minutes: number }): Promise<Meeting> {
-  const res = await fetch(`${API_BASE}/meetings/schedule`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+/** Retrieve the current authenticated user profile. */
+export const getCurrentUser = () => fetchApi<User>('/users/me');
+
+/** Get chronologically ordered upcoming meetings for the dashboard. */
+export const getUpcomingMeetings = () => fetchApi<Meeting[]>('/meetings/upcoming');
+
+/** Get reverse-chronologically ordered past/ended meetings. */
+export const getRecentMeetings = () => fetchApi<Meeting[]>('/meetings/recent');
+
+/** Instantly spin up a new active meeting room. */
+export const createInstantMeeting = () => fetchApi<InstantMeetingResponse>('/meetings/instant', { method: 'POST' });
+
+/** Schedule a future meeting. */
+export const scheduleMeeting = (data: { title: string; description?: string; scheduled_start: string; duration_minutes: number }) => 
+  fetchApi<Meeting>('/meetings/schedule', { method: 'POST', body: JSON.stringify(data) });
+
+/** Get full details of a specific meeting by its public string ID. */
+export const getMeetingDetails = (meetingId: string) => fetchApi<Meeting>(`/meetings/${meetingId}`);
+
+/** Join an existing meeting and register as a participant. */
+export const joinMeeting = (meetingId: string, displayName: string, isMuted: boolean = false, isVideoOn: boolean = true) => 
+  fetchApi<JoinMeetingResponse>(`/meetings/${meetingId}/join`, { 
+    method: 'POST', 
+    body: JSON.stringify({ meeting_id: meetingId, display_name: displayName, is_muted: isMuted, is_video_on: isVideoOn }) 
   });
-  if (!res.ok) throw new Error('Failed to schedule meeting');
-  return res.json();
-}
 
-export async function getMeetingDetails(meetingId: string): Promise<Meeting> {
-  const res = await fetch(`${API_BASE}/meetings/${meetingId}`);
-  if (!res.ok) throw new Error('Failed to fetch meeting details');
-  return res.json();
-}
+/** Get the list of current active participants in a room. */
+export const getParticipants = (meetingId: string) => fetchApi<Participant[]>(`/participants/${meetingId}`);
 
-export async function joinMeeting(meetingId: string, displayName: string): Promise<JoinMeetingResponse> {
-  const res = await fetch(`${API_BASE}/meetings/${meetingId}/join`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ meeting_id: meetingId, display_name: displayName }),
-  });
-  if (!res.ok) throw new Error('Failed to join meeting');
-  return res.json();
-}
+/** Toggle the microphone state for a specific participant. */
+export const toggleParticipantMute = (participantId: number, isMuted: boolean) => 
+  fetchApi<Participant>(`/participants/${participantId}/toggle-mute`, { method: 'PATCH', body: JSON.stringify({ is_muted: isMuted }) });
 
-export async function getParticipants(meetingId: string): Promise<Participant[]> {
-  const res = await fetch(`${API_BASE}/participants/${meetingId}`);
-  if (!res.ok) throw new Error('Failed to fetch participants');
-  return res.json();
-}
+/** Toggle the camera state for a specific participant. */
+export const toggleParticipantVideo = (participantId: number, isVideoOn: boolean) => 
+  fetchApi<Participant>(`/participants/${participantId}/toggle-mute`, { method: 'PATCH', body: JSON.stringify({ is_video_on: isVideoOn }) });
 
-export async function toggleParticipantMute(participantId: number, isMuted: boolean): Promise<Participant> {
-  const res = await fetch(`${API_BASE}/participants/${participantId}/toggle-mute`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_muted: isMuted }),
-  });
-  if (!res.ok) throw new Error('Failed to toggle mute');
-  return res.json();
-}
+/** Remove a participant from the room (kick or leave). */
+export const removeParticipant = (participantId: number) => 
+  fetchApi<void>(`/participants/${participantId}`, { method: 'DELETE' });
 
-export async function toggleParticipantVideo(participantId: number, isVideoOn: boolean): Promise<Participant> {
-  const res = await fetch(`${API_BASE}/participants/${participantId}/toggle-mute`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ is_video_on: isVideoOn }),
-  });
-  if (!res.ok) throw new Error('Failed to toggle video');
-  return res.json();
-}
-
-export async function removeParticipant(participantId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/participants/${participantId}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) throw new Error('Failed to remove participant');
-}
-
-export async function endMeeting(meetingId: string): Promise<Meeting> {
-  const res = await fetch(`${API_BASE}/meetings/${meetingId}/end`, {
-    method: 'PATCH',
-  });
-  if (!res.ok) throw new Error('Failed to end meeting');
-  return res.json();
-}
+/** Terminate a meeting (Host only). */
+export const endMeeting = (meetingId: string) => 
+  fetchApi<Meeting>(`/meetings/${meetingId}/end`, { method: 'PATCH' });

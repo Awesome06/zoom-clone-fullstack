@@ -13,6 +13,7 @@ import { useLocalMediaStream } from "@/hooks/useLocalMediaStream";
 import { useRouter } from "next/navigation";
 import { Info } from "lucide-react";
 
+/** Props required to mount the main Meeting Room UI. */
 interface MeetingRoomProps {
   meeting: Meeting;
   participants: Participant[];
@@ -23,6 +24,10 @@ interface MeetingRoomProps {
   onRefreshParticipants: () => void;
 }
 
+/**
+ * Core Meeting Interface Component.
+ * Orchestrates the video grid, sidebar controls, WebRTC stream handling, and participant management.
+ */
 export default function MeetingRoom({ meeting, participants, currentUser, localParticipantId, initialMuted, initialVideoOn, onRefreshParticipants }: MeetingRoomProps) {
   const router = useRouter();
   const [sidebar, setSidebar] = useState({ participants: false, chat: false });
@@ -42,6 +47,7 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
 
   const isHost = currentUser?.id === meeting.host_id;
 
+  /** Dynamically calculate CSS grid layout based on active participant count. */
   const getGridClass = (count: number) => {
     if (count === 1) return "grid-cols-1 grid-rows-1";
     if (count === 2) return "grid-cols-1 md:grid-cols-2 grid-rows-2 md:grid-rows-1";
@@ -51,12 +57,15 @@ export default function MeetingRoom({ meeting, participants, currentUser, localP
     return "grid-cols-3 md:grid-cols-4 lg:grid-cols-5 auto-rows-[minmax(200px,1fr)]";
   };
 
+  /** Toggle the audio mute state for a specific participant in the backend. */
   const handleToggleMute = async (id: number, currentMuted: boolean) => {
     try {
       await toggleParticipantMute(id, !currentMuted);
       if (id === localParticipantId) setLocalMuted(!currentMuted);
       onRefreshParticipants();
-    } catch (err) {}
+    } catch (err) {
+      console.error("Failed to toggle mute", err);
+    }
   };
 
   const handleToggleVideo = async (id: number, currentVideoOn: boolean) => {

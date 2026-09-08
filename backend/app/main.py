@@ -1,6 +1,11 @@
+"""Main FastAPI application entry point.
+
+Handles app initialization, CORS middleware, routing, and database seeding.
+"""
+
 import uuid
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,25 +18,31 @@ from app.models.user import User
 
 
 def seed_database():
+    """Initialize the database schema and seed it with default mock data if empty.
+    
+    Creates a default host user and generates 3 past and 3 upcoming mock meetings
+    to populate the frontend dashboard for demonstration purposes.
+    """
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     try:
-        host = db.query(User).filter(User.email == settings.DEFAULT_HOST_EMAIL).first()
-        if not host:
+        # Seed default host user
+        if not (host := db.query(User).filter(User.email == settings.DEFAULT_HOST_EMAIL).first()):
             host = User(name=settings.DEFAULT_HOST_NAME, email=settings.DEFAULT_HOST_EMAIL)
             db.add(host)
             db.commit()
             db.refresh(host)
 
-        meetings_count = db.query(Meeting).count()
-        if meetings_count == 0:
+        # Seed mock meetings if the table is empty
+        if db.query(Meeting).count() == 0:
             now = datetime.now(UTC)
 
+            # Generate 3 past meetings
             for i in range(1, 4):
                 uid = uuid.uuid4().hex[:10]
                 mid = f"{uid[:3]}-{uid[3:7]}-{uid[7:]}"
-                m = Meeting(
+                db.add(Meeting(
                     meeting_id=mid,
                     title=f"Past Meeting {i}",
                     host_id=host.id,
@@ -40,13 +51,13 @@ def seed_database():
                     scheduled_start=now - timedelta(days=i),
                     duration_minutes=30,
                     invite_link=f"http://localhost:3000/meeting/{mid}",
-                )
-                db.add(m)
+                ))
 
+            # Generate 3 upcoming meetings
             for i in range(1, 4):
                 uid = uuid.uuid4().hex[:10]
                 mid = f"{uid[:3]}-{uid[3:7]}-{uid[7:]}"
-                m = Meeting(
+                db.add(Meeting(
                     meeting_id=mid,
                     title=f"Upcoming Sync {i}",
                     host_id=host.id,
@@ -55,8 +66,7 @@ def seed_database():
                     scheduled_start=now + timedelta(days=i),
                     duration_minutes=60,
                     invite_link=f"http://localhost:3000/meeting/{mid}",
-                )
-                db.add(m)
+                ))
 
             db.commit()
     finally:
@@ -65,6 +75,7 @@ def seed_database():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """FastAPI lifespan context manager for startup and shutdown events."""
     seed_database()
     yield
 

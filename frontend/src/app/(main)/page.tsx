@@ -7,6 +7,11 @@ import { createInstantMeeting, getUpcomingMeetings, getRecentMeetings } from "@/
 import { Meeting } from "@/lib/types";
 import ScheduleModal from "@/components/ScheduleModal";
 
+/**
+ * Main Dashboard View.
+ * Displays the current time, quick action buttons (New, Join, Schedule),
+ * and dynamically fetches and displays upcoming and recent meetings.
+ */
 export default function HomeView() {
   const router = useRouter();
   const [currentTime, setCurrentTime] = useState("");
@@ -17,17 +22,15 @@ export default function HomeView() {
   const [recentMeetings, setRecentMeetings] = useState<Meeting[]>([]);
   const [loadingMeetings, setLoadingMeetings] = useState(true);
 
+  /** Fetch upcoming and recent meetings from the backend. */
   const fetchMeetings = async () => {
     setLoadingMeetings(true);
     try {
-      const [upcoming, recent] = await Promise.all([
-        getUpcomingMeetings(),
-        getRecentMeetings()
-      ]);
+      const [upcoming, recent] = await Promise.all([getUpcomingMeetings(), getRecentMeetings()]);
       setUpcomingMeetings(upcoming);
       setRecentMeetings(recent);
     } catch (e) {
-      console.error(e);
+      console.error("Failed to load meetings", e);
     } finally {
       setLoadingMeetings(false);
     }
@@ -45,12 +48,13 @@ export default function HomeView() {
     return () => clearInterval(interval);
   }, []);
 
+  /** Create an instant meeting and automatically route the user to the new room. */
   const handleNewMeeting = async () => {
     try {
       const { meeting_id } = await createInstantMeeting();
       router.push(`/meeting/${meeting_id}`);
     } catch (err) {
-      // Handle silently
+      console.error("Failed to create instant meeting", err);
     }
   };
 

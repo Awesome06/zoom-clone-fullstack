@@ -1,3 +1,8 @@
+"""Participant API endpoints for the Zoom Clone backend.
+
+Handles fetching, muting, and removing meeting participants.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -11,8 +16,8 @@ router = APIRouter()
 
 @router.get("/{meeting_id}", response_model=list[ParticipantResponse])
 def get_participants(meeting_id: str, db: Session = Depends(get_db)):
-    meeting = db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()
-    if not meeting:
+    """Fetch all active participants currently in a specific meeting."""
+    if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     return db.query(Participant).filter(Participant.meeting_id == meeting.id).all()
@@ -20,8 +25,8 @@ def get_participants(meeting_id: str, db: Session = Depends(get_db)):
 
 @router.patch("/{participant_id}/toggle-mute", response_model=ParticipantResponse)
 def toggle_mute(participant_id: int, req: ParticipantUpdate, db: Session = Depends(get_db)):
-    participant = db.query(Participant).filter(Participant.id == participant_id).first()
-    if not participant:
+    """Update a participant's audio or video state (e.g., mute/unmute)."""
+    if not (participant := db.query(Participant).filter(Participant.id == participant_id).first()):
         raise HTTPException(status_code=404, detail="Participant not found")
 
     if req.is_muted is not None:
@@ -36,9 +41,10 @@ def toggle_mute(participant_id: int, req: ParticipantUpdate, db: Session = Depen
 
 @router.delete("/{participant_id}", status_code=204)
 def remove_participant(participant_id: int, db: Session = Depends(get_db)):
-    participant = db.query(Participant).filter(Participant.id == participant_id).first()
-    if not participant:
+    """Remove a participant from a meeting (e.g., when they leave or are kicked)."""
+    if not (participant := db.query(Participant).filter(Participant.id == participant_id).first()):
         raise HTTPException(status_code=404, detail="Participant not found")
+        
     db.delete(participant)
     db.commit()
     return
