@@ -1,38 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
-import { User } from "@/lib/types";
-
-interface ChatMessage {
-  id: string;
-  senderName: string;
-  text: string;
-  time: string;
-  isMe: boolean;
-}
+import { User, Meeting, ChatMessage } from "@/lib/types";
+import { getMeetingChat, sendMeetingChat } from "@/lib/api";
 
 interface ChatSidebarProps {
   currentUser: User | null;
+  meeting: Meeting;
 }
 
-export default function ChatSidebar({ currentUser }: ChatSidebarProps) {
+export default function ChatSidebar({ currentUser, meeting }: ChatSidebarProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
 
-  const handleSend = () => {
+  useEffect(() => {
+    const fetchChat = async () => {
+      try {
+        const chats = await getMeetingChat(meeting.meeting_id);
+        setMessages(chats);
+      } catch (err) {
+        console.error("Failed to fetch chat", err);
+      }
+    };
+
+    fetchChat();
+    const intervalId = setInterval(fetchChat, 3000);
+    return () => clearInterval(intervalId);
+  }, [meeting.meeting_id]);
+
+  const handleSend = async () => {
     if (inputText.trim() === "") return;
     
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      senderName: currentUser?.name || "Me",
-      text: inputText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true,
-    };
-    
-    setMessages([...messages, newMessage]);
+    const textToSend = inputText;
+    const senderName = currentUser?.name || "Guest";
     setInputText("");
+    
+    try {
+      await sendMeetingChat(meeting.meeting_id, senderName, textToSend);
+      // Optimistically fetch immediately to update UI without waiting for next poll
+      const chats = await getMeetingChat(meeting.meeting_id);
+      setMessages(chats);
+    } catch (err) {
+      console.error("Failed to send chat", err);
+      // If it fails, restore input text
+      setInputText(textToSend);
+    }
   };
 
   return (
@@ -48,12 +61,12 @@ export default function ChatSidebar({ currentUser }: ChatSidebarProps) {
           </div>
         ) : (
           messages.map((msg) => (
-            <div key={msg.id} className="flex flex-col gap-1">
+            <div key={msg.id} className={`flex flex-col gap-1 ${msg.sender_name === currentUser?.name ? "items-end" : "items-start"}`}>
               <div className="flex items-baseline gap-2">
-                <span className="text-xs font-semibold text-gray-800">{msg.senderName}</span>
-                <span className="text-[10px] text-gray-500">{msg.time}</span>
+                <span className="text-xs font-semibold text-gray-800">{msg.sender_name === currentUser?.name ? "Me" : msg.sender_name}</span>
+                <span className="text-[10px] text-gray-500">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <div className="text-sm text-gray-700 bg-white p-2 rounded-lg inline-block self-start max-w-[90%] shadow-sm border border-gray-200">
+              <div className={`text-sm text-gray-700 bg-white p-2 rounded-lg inline-block self-start max-w-[90%] shadow-sm border border-gray-200 ${msg.sender_name === currentUser?.name ? "bg-blue-50 border-blue-100 self-end" : ""}`}>
                 {msg.text}
               </div>
             </div>

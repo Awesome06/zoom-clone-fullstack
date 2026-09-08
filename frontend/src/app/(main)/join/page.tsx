@@ -4,6 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 
+/**
+ * Join Meeting Page.
+ * Allows users to manually type or paste a meeting ID to join.
+ * Maintains a local-storage history of recently joined meetings for quick access.
+ */
 export default function JoinPage() {
   const router = useRouter();
   const [meetingId, setMeetingId] = useState("");
@@ -11,6 +16,7 @@ export default function JoinPage() {
   const [showRecent, setShowRecent] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  /** On mount, load recent meetings history and setup click-outside listener. */
   useEffect(() => {
     try {
       const recent = localStorage.getItem("recent_joined_meetings");
@@ -26,6 +32,9 @@ export default function JoinPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /**
+   * Handle form submission. Extracts the raw ID if the user pasted a full URL.
+   */
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!meetingId.trim()) return;
