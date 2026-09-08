@@ -206,7 +206,7 @@ def join_meeting(meeting_id: str, req: JoinMeetingRequest, db: Session = Depends
         meeting_id=meeting.id,
         display_name=req.display_name,
         is_muted=req.is_muted,
-        is_video_on=req.is_video_on
+        is_video_on=req.is_video_on,
     )
     db.add(participant)
 
@@ -226,6 +226,7 @@ def end_meeting(meeting_id: str, db: Session = Depends(get_db)):
     clearing its chat history.
     """
     from datetime import UTC, datetime, timedelta
+
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
 
@@ -246,6 +247,7 @@ def end_meeting(meeting_id: str, db: Session = Depends(get_db)):
     db.refresh(meeting)
     return meeting
 
+
 @router.get("/{meeting_id}/chat", response_model=list[ChatMessageResponse])
 def get_chat_messages(meeting_id: str, db: Session = Depends(get_db)):
     """Fetch all persisted chat messages for a given meeting."""
@@ -259,17 +261,14 @@ def get_chat_messages(meeting_id: str, db: Session = Depends(get_db)):
         .all()
     )
 
+
 @router.post("/{meeting_id}/chat", response_model=ChatMessageResponse)
 def send_chat_message(meeting_id: str, req: ChatMessageCreate, db: Session = Depends(get_db)):
     """Send a new chat message to a specific meeting."""
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    msg = ChatMessage(
-        meeting_id=meeting.id,
-        sender_name=req.sender_name,
-        text=req.text
-    )
+    msg = ChatMessage(meeting_id=meeting.id, sender_name=req.sender_name, text=req.text)
     db.add(msg)
     db.commit()
     db.refresh(msg)

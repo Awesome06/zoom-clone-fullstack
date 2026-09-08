@@ -45,7 +45,6 @@ def remove_participant(participant_id: int, db: Session = Depends(get_db)):
     if not (participant := db.query(Participant).filter(Participant.id == participant_id).first()):
         raise HTTPException(status_code=404, detail="Participant not found")
 
-
     meeting_id = participant.meeting_id
     db.delete(participant)
     db.commit()
@@ -67,7 +66,6 @@ def remove_participant(participant_id: int, db: Session = Depends(get_db)):
             )
             if datetime.now(UTC) >= end_time:
                 meeting.status = "ended"
-
 
         db.commit()
 

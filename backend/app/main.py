@@ -45,35 +45,40 @@ def seed_database():
             for i in range(1, 4):
                 uid = uuid.uuid4().hex[:10]
                 mid = f"{uid[:3]}-{uid[3:7]}-{uid[7:]}"
-                db.add(Meeting(
-                    meeting_id=mid,
-                    title=f"Past Meeting {i}",
-                    host_id=host.id,
-                    is_instant=False,
-                    status="ended",
-                    scheduled_start=now - timedelta(days=i),
-                    duration_minutes=30,
-                    invite_link=f"http://localhost:3000/meeting/{mid}",
-                ))
+                db.add(
+                    Meeting(
+                        meeting_id=mid,
+                        title=f"Past Meeting {i}",
+                        host_id=host.id,
+                        is_instant=False,
+                        status="ended",
+                        scheduled_start=now - timedelta(days=i),
+                        duration_minutes=30,
+                        invite_link=f"http://localhost:3000/meeting/{mid}",
+                    )
+                )
 
             # Generate 3 upcoming meetings
             for i in range(1, 4):
                 uid = uuid.uuid4().hex[:10]
                 mid = f"{uid[:3]}-{uid[3:7]}-{uid[7:]}"
-                db.add(Meeting(
-                    meeting_id=mid,
-                    title=f"Upcoming Sync {i}",
-                    host_id=host.id,
-                    is_instant=False,
-                    status="scheduled",
-                    scheduled_start=now + timedelta(days=i),
-                    duration_minutes=60,
-                    invite_link=f"http://localhost:3000/meeting/{mid}",
-                ))
+                db.add(
+                    Meeting(
+                        meeting_id=mid,
+                        title=f"Upcoming Sync {i}",
+                        host_id=host.id,
+                        is_instant=False,
+                        status="scheduled",
+                        scheduled_start=now + timedelta(days=i),
+                        duration_minutes=60,
+                        invite_link=f"http://localhost:3000/meeting/{mid}",
+                    )
+                )
 
             db.commit()
     finally:
         db.close()
+
 
 def cleanup_meetings():
     """Delete meetings older than 1 day, or ended meetings whose scheduled end time has passed."""
@@ -98,7 +103,7 @@ def cleanup_meetings():
                     if now >= end_time:
                         should_delete = True
                 else:
-                    should_delete = True # Instant meeting ended
+                    should_delete = True  # Instant meeting ended
             elif not m.is_instant and m.scheduled_start:
                 # Rule 3: Scheduled meeting not explicitly ended, but time passed and empty
                 end_time = m.scheduled_start.replace(tzinfo=UTC) + timedelta(
