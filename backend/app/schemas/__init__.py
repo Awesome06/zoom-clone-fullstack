@@ -1,3 +1,4 @@
+from .chat import ChatMessageCreate, ChatMessageResponse
 from .meeting import (
     InstantMeetingResponse,
     JoinMeetingRequest,
@@ -7,4 +8,3 @@ from .meeting import (
 )
 from .participant import ParticipantResponse, ParticipantUpdate
 from .user import UserBase, UserResponse
-from .chat import ChatMessageCreate, ChatMessageResponse

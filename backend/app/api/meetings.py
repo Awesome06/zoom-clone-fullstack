@@ -12,18 +12,18 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.models.chat import ChatMessage
 from app.models.meeting import Meeting
 from app.models.participant import Participant
 from app.models.user import User
-from app.models.chat import ChatMessage
 from app.schemas.chat import ChatMessageCreate, ChatMessageResponse
 from app.schemas.meeting import (
+    EditMeetingRequest,
     InstantMeetingResponse,
     JoinMeetingRequest,
     JoinMeetingResponse,
     MeetingResponse,
     ScheduleMeetingRequest,
-    EditMeetingRequest,
 )
 
 router = APIRouter()
@@ -42,7 +42,9 @@ def get_host_user(db: Session) -> User | None:
 
 @router.get("/upcoming", response_model=list[MeetingResponse])
 def get_upcoming_meetings(db: Session = Depends(get_db)):
-    """Retrieve a chronologically ordered list of upcoming scheduled meetings for the default host."""
+    """Retrieve a chronologically ordered list of upcoming scheduled meetings
+    for the default host.
+    """
     if not (host := get_host_user(db)):
         return []
 
@@ -60,7 +62,9 @@ def get_upcoming_meetings(db: Session = Depends(get_db)):
 
 @router.get("/recent", response_model=list[MeetingResponse])
 def get_recent_meetings(db: Session = Depends(get_db)):
-    """Retrieve a reverse-chronologically ordered list of ended or past meetings for the default host."""
+    """Retrieve a reverse-chronologically ordered list of ended or past meetings
+    for the default host.
+    """
     if not (host := get_host_user(db)):
         return []
 
@@ -91,7 +95,7 @@ def create_instant_meeting(db: Session = Depends(get_db)):
         status="active",
         invite_link=f"http://localhost:3000/meeting/{meeting_id}",
     )
-    
+
     db.add(new_meeting)
     db.commit()
     db.refresh(new_meeting)
@@ -121,7 +125,7 @@ def schedule_meeting(req: ScheduleMeetingRequest, db: Session = Depends(get_db))
         duration_minutes=req.duration_minutes,
         invite_link=f"http://localhost:3000/meeting/{meeting_id}",
     )
-    
+
     db.add(new_meeting)
     db.commit()
     db.refresh(new_meeting)
@@ -194,10 +198,12 @@ def join_meeting(meeting_id: str, req: JoinMeetingRequest, db: Session = Depends
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     if meeting.status == "ended":
-        raise HTTPException(status_code=400, detail="This meeting has been ended and is no longer joinable")
+        raise HTTPException(
+            status_code=400, detail="This meeting has been ended and is no longer joinable"
+        )
 
     participant = Participant(
-        meeting_id=meeting.id, 
+        meeting_id=meeting.id,
         display_name=req.display_name,
         is_muted=req.is_muted,
         is_video_on=req.is_video_on
@@ -216,14 +222,18 @@ def join_meeting(meeting_id: str, req: JoinMeetingRequest, db: Session = Depends
 
 @router.patch("/{meeting_id}/end", response_model=MeetingResponse)
 def end_meeting(meeting_id: str, db: Session = Depends(get_db)):
-    """Terminate an active meeting by updating its status to 'ended' and clearing its chat history."""
+    """Terminate an active meeting by updating its status to 'ended' and
+    clearing its chat history.
+    """
     from datetime import UTC, datetime, timedelta
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
 
     is_scheduled_and_passed = False
     if not meeting.is_instant and meeting.scheduled_start:
-        end_time = meeting.scheduled_start.replace(tzinfo=UTC) + timedelta(minutes=meeting.duration_minutes)
+        end_time = meeting.scheduled_start.replace(tzinfo=UTC) + timedelta(
+            minutes=meeting.duration_minutes
+        )
         if datetime.now(UTC) >= end_time:
             is_scheduled_and_passed = True
 
@@ -231,7 +241,7 @@ def end_meeting(meeting_id: str, db: Session = Depends(get_db)):
         meeting.status = "ended"
         # Delete chat history explicitly when host ends for all and meeting officially ends
         db.query(ChatMessage).filter(ChatMessage.meeting_id == meeting.id).delete()
-    
+
     db.commit()
     db.refresh(meeting)
     return meeting
@@ -241,15 +251,20 @@ def get_chat_messages(meeting_id: str, db: Session = Depends(get_db)):
     """Fetch all persisted chat messages for a given meeting."""
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
-        
-    return db.query(ChatMessage).filter(ChatMessage.meeting_id == meeting.id).order_by(ChatMessage.timestamp.asc()).all()
+
+    return (
+        db.query(ChatMessage)
+        .filter(ChatMessage.meeting_id == meeting.id)
+        .order_by(ChatMessage.timestamp.asc())
+        .all()
+    )
 
 @router.post("/{meeting_id}/chat", response_model=ChatMessageResponse)
 def send_chat_message(meeting_id: str, req: ChatMessageCreate, db: Session = Depends(get_db)):
     """Send a new chat message to a specific meeting."""
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
-        
+
     msg = ChatMessage(
         meeting_id=meeting.id,
         sender_name=req.sender_name,

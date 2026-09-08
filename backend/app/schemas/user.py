@@ -1,6 +1,7 @@
 """Pydantic schemas for User data validation and serialization."""
 
 from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 
 

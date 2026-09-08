@@ -1,6 +1,7 @@
 """Pydantic schemas for Participant data validation and serialization."""
 
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
