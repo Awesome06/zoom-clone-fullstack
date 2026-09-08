@@ -1,61 +1,180 @@
-# Zoom Clone - Scaler SDE Fullstack Assignment
+# Zoom Clone — Video Conferencing Platform
 
 A functional video conferencing web application designed to replicate the modern Zoom Meeting Platform. This platform enables users to create, join, and schedule meetings within a clean, professional interface. 
 
-## Evaluation Criteria Defense
+Everything is functional—instant meeting creation, scheduled meetings, unique meeting IDs, join by link, real-time presence (mocked/simulated), and interactive dashboards.
 
-This project has been meticulously developed to align with the assignment's core evaluation metrics:
+## Contents
+- [Quick start](#quick-start)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Database schema](#database-schema)
+- [API overview](#api-overview)
+- [Edge cases and how they are handled](#edge-cases-and-how-they-are-handled)
+- [Deployment](#deployment)
+- [Assumptions](#assumptions)
+- [Project layout](#project-layout)
 
-*   **Functionality**: All core features are fully functional. Users can instantly create meetings with a unique ID and shareable link, join active meetings with a display name, and schedule meetings using a date/time picker. The dashboard correctly tracks upcoming and recent meetings. 
-*   **UI/UX**: The frontend styling rigorously replicates Zoom's modern aesthetic. It features a responsive layout, a clean navigation bar, high-quality iconography (using `lucide-react`), and a dynamic dashboard that feels indistinguishable from the authentic Zoom experience.
-*   **Database Design**: A well-structured SQLite schema handles the data layer. The design relies on normalized tables (`User`, `Meeting`, `Participant`) with clear relationships (e.g., one-to-many from meetings to participants), ensuring efficient querying and data integrity.
-*   **Code Quality**: The codebase is strictly typed using TypeScript for Next.js and Pydantic models for FastAPI. The code is highly readable, explicitly commented, cleanly formatted, and leverages modern language features to avoid anti-patterns.
-*   **Code Modularity**: The repository demonstrates strong separation of concerns. The Next.js frontend employs reusable, isolated React components. The FastAPI backend utilizes a modular router structure (`/api/meetings`, `/api/participants`) and abstracts database operations away from the core request handlers.
+## Quick start
 
-## Core Features
-*   **Landing Dashboard:** Clean professional Zoom UI with a navigation bar, profile placeholders, and buttons for new, join, and scheduled meetings.
-*   **Instant Meeting Creation:** Instantly generates a unique Meeting ID and shareable invite link, redirecting the user directly to the meeting room.
-*   **Join Meeting:** Allows users to join active rooms using a Meeting ID or invite link after entering a display name.
-*   **Schedule Meetings:** Features a date and time picker to schedule meetings, auto-generate links, and display them in the Upcoming Meetings section.
+Requires Python 3.11+ and Node 20+. The application comes with scripts to start both frontend and backend concurrently.
 
-## Technical Stack
-*   **Frontend:** Next.js (Single Page Application)
-*   **Backend:** Python with FastAPI
-*   **Database:** SQLite
-
-## Database Schema Design
-*   `User`: Represents the default authenticated host.
-*   `Meeting`: Stores `meeting_id`, `title`, `description`, `scheduled_start_time`, `duration`, and `is_instant`. 
-*   `Participant`: Tracks joined users and their display names linked to specific meetings.
-
-## Assumptions & Disclaimers
-*   **Authentication:** Assume a default user is actively logged in; focus remains heavily on core functionality rather than robust authentication flows.
-*   **Data Seeding:** The database is seeded with initial sample data to populate the upcoming and recent meetings lists upon initialization.
-*   **AI Utilization:** AI assistants were utilized for scaffolding and boilerplate generation, with all implementation decisions thoroughly understood.
-
-## Setup & Startup Instructions
-
-The project features automated smart scripts for both Windows and Mac/Linux. These scripts automatically handle virtual environment creation, module installation, and concurrent startup. Setup tasks (like `npm install` and `pip install`) only trigger on the first run or if changes to the dependency files are detected.
-
-**1. Clone the repository:**
+**Mac/Linux**
 ```bash
 git clone https://github.com/Awesome06/zoom-clone-fullstack.git
 cd zoom-clone-fullstack
-```
-
-**2.1 Run the Application (Mac/Linux):**
-Make the shell script executable and run it. The script will install dependencies if needed, boot the backend in the background, and start the frontend in the foreground.
-```bash
 chmod +x start.sh
 ./start.sh
 ```
 
-**2.2 Run the Application (Windows):**
-Simply execute the batch file from your command prompt or double-click it. It will check for dependency updates, launch the FastAPI backend in a new command window, and start the Next.js frontend in the current window.
+**Windows**
 ```cmd
+git clone https://github.com/Awesome06/zoom-clone-fullstack.git
+cd zoom-clone-fullstack
 start.bat
 ```
 
+### Signing in
+Authentication is currently mocked: a default user is automatically logged in upon starting the application to focus on core meeting functionality. The database is seeded with initial sample data to populate the upcoming and recent meetings lists upon initialization.
+
+## Tech stack
+
+| Layer | Choice |
+| --- | --- |
+| Frontend | Next.js (App Router), TypeScript, Tailwind CSS, lucide-react |
+| Backend | Python, FastAPI, SQLAlchemy 2.0 |
+| Database | SQLite |
+| Scheduling | APScheduler (for periodic cleanup) |
+
+## Architecture
+
+```text
+┌──────────────────────────── Browser ────────────────────────────┐
+│                        Next.js App (SPA)                        │
+│                                                                 │
+│   ├── UI Components (Dashboard, Modals, Forms)                  │
+│   └── State Management / API Client (Fetch REST)                │
+└───────────────┬─────────────────────────────────────────────────┘
+                │ HTTP / REST
+┌───────────────▼─────────────────────────────────────────────────┐
+│                        FastAPI Backend                          │
+│                                                                 │
+│   ├── api/            REST endpoints (/api/meetings, etc.)      │
+│   ├── core/           Business logic and scheduled tasks        │
+│   └── models/         SQLAlchemy schema and constraints         │
+└───────────────┬─────────────────────────────────────────────────┘
+                │
+┌───────────────▼────────────────┐
+│             SQLite             │
+└────────────────────────────────┘
+```
+
+Three decisions shape everything else:
+1. **The database is the source of truth.** The backend interacts directly with the SQLite database through SQLAlchemy ORM, ensuring consistent state across requests.
+2. **Scheduled Cleanup.** Meetings older than 1 day or ended meetings whose scheduled end time has passed are automatically pruned using an APScheduler cron job running nightly.
+3. **Seeded Data for Immediate Use.** On startup, the `lifespan` event seeds the database with a default host user, 3 past meetings, and 3 upcoming meetings to populate the UI instantly without manual setup.
+
+## Database schema
+
+Three core tables handling the entities.
+
+```text
+users
+├─ id PK
+├─ name
+├─ email UNIQUE
+└─ created_at
+
+meetings
+├─ id PK
+├─ meeting_id UNIQUE (e.g. 123-4567-890)
+├─ title
+├─ description
+├─ host_id ─► users.id
+├─ status 'scheduled' | 'active' | 'ended'
+├─ is_instant BOOLEAN
+├─ scheduled_start
+├─ duration_minutes
+├─ invite_link
+└─ created_at
+
+participants
+├─ id PK
+├─ meeting_id ─► meetings.id
+├─ user_id ─► users.id, nullable
+├─ display_name
+├─ joined_at
+└─ left_at, nullable
+
+chat_messages
+├─ id PK
+├─ meeting_id ─► meetings.id
+├─ sender_id ─► users.id, nullable
+├─ sender_name
+├─ content
+└─ created_at
+```
+
+## API overview
+
+All routes are prefixed with `/api`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/meetings` | List upcoming and recent meetings |
+| POST | `/api/meetings` | Schedule or create an instant meeting |
+| GET | `/api/meetings/{meeting_id}` | Retrieve details of a specific meeting |
+| PATCH | `/api/meetings/{meeting_id}` | Update meeting status (e.g., end meeting) |
+| POST | `/api/participants` | Join a meeting |
+| GET | `/api/participants/meeting/{meeting_id}` | List active participants in a meeting |
+
+## Edge cases and how they are handled
+
+| Case | Mechanism |
+| --- | --- |
+| Duplicate Meeting IDs | Uniqueness enforced at the DB level, backed by robust UUID-based generation. |
+| Stale Meetings | Handled by an APScheduler cron job running nightly to prune old or ended meetings. |
+| Instant Meeting Cleanup | Instantly ended meetings are immediately flagged for deletion in the next cleanup cycle. |
+| First-time Boot | Startup scripts explicitly handle missing DB dependencies and populate initial tables. |
+
 ## Deployment
-*   **Frontend Live Link:** [https://zoom-clone-fullstack-dsmn1.vercel.app/](https://zoom-clone-fullstack-dsmn1.vercel.app/)
-*   **Backend API Link:** [https://zoom-clone-backend-zhvw.onrender.com](https://zoom-clone-backend-zhvw.onrender.com)
+
+The application components are deployed independently:
+
+- **Frontend Live Link:** [https://zoom-clone-fullstack-dsmn1.vercel.app/](https://zoom-clone-fullstack-dsmn1.vercel.app/)
+- **Backend API Link:** [https://zoom-clone-backend-zhvw.onrender.com](https://zoom-clone-backend-zhvw.onrender.com)
+
+*Note: As Render free tier spins down on inactivity, the initial backend request might take a few seconds.*
+
+## Assumptions
+
+- **Authentication:** Assume a default user is actively logged in; focus remains heavily on core functionality rather than robust authentication flows.
+- **Data Seeding:** The database is seeded with initial sample data to populate the upcoming and recent meetings lists upon initialization.
+- **AI Utilization:** AI assistants were utilized for scaffolding and boilerplate generation, with all implementation decisions thoroughly understood.
+
+## Project layout
+
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/          API routing and endpoints
+│   │   ├── core/         Config and DB setup
+│   │   ├── models/       SQLAlchemy schemas
+│   │   ├── schemas/      Pydantic request/response validation
+│   │   └── main.py       App wiring, CORS, lifespan, cron jobs
+│   ├── requirements.txt
+│   └── pyproject.toml
+├── frontend/
+│   ├── src/
+│   │   ├── app/          Next.js App Router (pages & layouts)
+│   │   ├── components/   Reusable UI components (Dashboard, Modals)
+│   │   ├── hooks/        Custom React hooks
+│   │   └── lib/          API clients and utility functions
+│   ├── tailwind.config.ts
+│   └── package.json
+├── scripts/              Startup scripts for Windows/Linux
+│   ├── start.bat         Windows start script
+│   ├── start.sh          Mac/Linux start script
+└── README.md
+```
