@@ -17,6 +17,14 @@ class ScheduleMeetingRequest(MeetingBase):
     scheduled_start: datetime
 
 
+class EditMeetingRequest(BaseModel):
+    """Payload required to edit an existing scheduled meeting."""
+    title: str | None = None
+    description: str | None = None
+    scheduled_start: datetime | None = None
+    duration_minutes: int | None = None
+
+
 class InstantMeetingResponse(BaseModel):
     """Optimized payload returned when instantly creating a meeting."""
     meeting_id: str

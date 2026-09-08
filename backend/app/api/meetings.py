@@ -23,6 +23,7 @@ from app.schemas.meeting import (
     JoinMeetingResponse,
     MeetingResponse,
     ScheduleMeetingRequest,
+    EditMeetingRequest,
 )
 
 router = APIRouter()
@@ -132,6 +133,38 @@ def get_meeting(meeting_id: str, db: Session = Depends(get_db)):
     """Retrieve detailed information about a specific meeting by its ID."""
     if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
         raise HTTPException(status_code=404, detail="Meeting not found")
+    return meeting
+
+
+@router.patch("/{meeting_id}", response_model=MeetingResponse)
+def edit_meeting(meeting_id: str, req: EditMeetingRequest, db: Session = Depends(get_db)):
+    """Edit details of an existing scheduled meeting."""
+    if not (host := get_host_user(db)):
+        raise HTTPException(status_code=403, detail="Host user not found")
+
+    if not (meeting := db.query(Meeting).filter(Meeting.meeting_id == meeting_id).first()):
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if meeting.host_id != host.id:
+        raise HTTPException(status_code=403, detail="Not authorized to edit this meeting")
+
+    if meeting.status == "ended":
+        raise HTTPException(status_code=400, detail="Cannot edit an ended meeting")
+
+    if meeting.is_instant:
+        raise HTTPException(status_code=400, detail="Cannot edit an instant meeting")
+
+    if req.title is not None:
+        meeting.title = req.title
+    if req.description is not None:
+        meeting.description = req.description
+    if req.scheduled_start is not None:
+        meeting.scheduled_start = req.scheduled_start
+    if req.duration_minutes is not None:
+        meeting.duration_minutes = req.duration_minutes
+
+    db.commit()
+    db.refresh(meeting)
     return meeting
 
 

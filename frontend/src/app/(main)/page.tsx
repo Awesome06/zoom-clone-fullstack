@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Video, Plus, Calendar, Info, RefreshCw, Clock } from "lucide-react";
+import { Video, Plus, Calendar, Info, RefreshCw, Clock, Pencil } from "lucide-react";
 import { createInstantMeeting, getUpcomingMeetings, getRecentMeetings } from "@/lib/api";
 import { Meeting } from "@/lib/types";
 import ScheduleModal from "@/components/ScheduleModal";
+import EditMeetingModal from "@/components/EditMeetingModal";
 
 /**
  * Main Dashboard View.
@@ -18,6 +19,7 @@ export default function HomeView() {
   const [currentDate, setCurrentDate] = useState("");
   
   const [isScheduleOpen, setScheduleOpen] = useState(false);
+  const [editMeeting, setEditMeeting] = useState<Meeting | null>(null);
   const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([]);
   const [recentMeetings, setRecentMeetings] = useState<Meeting[]>([]);
   const [loadingMeetings, setLoadingMeetings] = useState(true);
@@ -129,17 +131,26 @@ export default function HomeView() {
                     <div>
                       <div className="font-semibold text-gray-900 text-[15px] group-hover:text-zoom-blue transition-colors line-clamp-1">{m.title}</div>
                       <div className="text-[13px] text-gray-500 mt-1 flex items-center gap-3 font-medium">
-                        <span className="text-gray-700">{m.scheduled_start ? new Date(m.scheduled_start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Time TBD'}</span>
+                        <span className="text-gray-700">{m.scheduled_start ? new Date(m.scheduled_start.endsWith('Z') ? m.scheduled_start : m.scheduled_start + 'Z').toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Time TBD'}</span>
                         <span className="opacity-50">|</span>
                         <span>ID: {m.meeting_id}</span>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => router.push(`/meeting/${m.meeting_id}`)}
-                      className="px-5 py-2 bg-zoom-blue hover:bg-zoom-blue-dark text-white text-[13px] font-semibold rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-sm shrink-0 ml-4"
-                    >
-                      Start
-                    </button>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all ml-4 shrink-0">
+                      <button 
+                        onClick={() => setEditMeeting(m)}
+                        className="p-2 text-gray-500 hover:text-zoom-blue hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Edit Meeting"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => router.push(`/meeting/${m.meeting_id}`)}
+                        className="px-5 py-2 bg-zoom-blue hover:bg-zoom-blue-dark text-white text-[13px] font-semibold rounded-lg shadow-sm"
+                      >
+                        Start
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -175,7 +186,7 @@ export default function HomeView() {
                     <div>
                       <div className="font-semibold text-gray-900 text-[15px] line-clamp-1">{m.title}</div>
                       <div className="text-[13px] text-gray-500 mt-1 flex items-center gap-3 font-medium">
-                        <span>{(m.scheduled_start || m.created_at) ? new Date(m.scheduled_start || m.created_at!).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : 'Date TBD'}</span>
+                        <span>{(m.scheduled_start || m.created_at) ? new Date((m.scheduled_start || m.created_at!).endsWith('Z') ? (m.scheduled_start || m.created_at!) : (m.scheduled_start || m.created_at!) + 'Z').toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) : 'Date TBD'}</span>
                         <span className="opacity-50">|</span>
                         <span>ID: {m.meeting_id}</span>
                       </div>
@@ -208,6 +219,15 @@ export default function HomeView() {
         isOpen={isScheduleOpen}
         onClose={() => setScheduleOpen(false)}
         onScheduled={() => {
+          fetchMeetings();
+        }}
+      />
+
+      <EditMeetingModal
+        isOpen={!!editMeeting}
+        onClose={() => setEditMeeting(null)}
+        meeting={editMeeting}
+        onEdited={() => {
           fetchMeetings();
         }}
       />

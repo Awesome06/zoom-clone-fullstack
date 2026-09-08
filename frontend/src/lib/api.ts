@@ -47,6 +47,10 @@ export const createInstantMeeting = () => fetchApi<InstantMeetingResponse>('/mee
 export const scheduleMeeting = (data: { title: string; description?: string; scheduled_start: string; duration_minutes: number }) => 
   fetchApi<Meeting>('/meetings/schedule', { method: 'POST', body: JSON.stringify(data) });
 
+/** Edit an existing scheduled meeting. */
+export const editMeeting = (meetingId: string, data: { title?: string; description?: string; scheduled_start?: string; duration_minutes?: number }) => 
+  fetchApi<Meeting>(`/meetings/${meetingId}`, { method: 'PATCH', body: JSON.stringify(data) });
+
 /** Get full details of a specific meeting by its public string ID. */
 export const getMeetingDetails = (meetingId: string) => fetchApi<Meeting>(`/meetings/${meetingId}`);
 
